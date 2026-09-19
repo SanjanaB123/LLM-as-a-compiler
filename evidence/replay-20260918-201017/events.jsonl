@@ -1,0 +1,7 @@
+{"ts": 1789776618.269, "event": "replay_start", "capability": "lookup_member_balance"}
+{"ts": 1789776618.406, "event": "step", "step": "open_application", "rung": null, "fell_back": false, "checkpoint_ok": true, "waited_ms": 5, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789776618.446, "event": "step", "step": "type_1", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 5, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789776618.481, "event": "step", "step": "type_2", "rung": 2, "fell_back": false, "checkpoint_ok": true, "waited_ms": 10, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789776618.582, "event": "hard_failure", "step": "click_3", "outcome": "member_id_not_submitted", "expected": "the search returned a response: either a member detail panel or an alert", "observed": "The app reports an empty Member ID, so our type step did not land. Our bug.", "screenshot": "evidence/replay-20260918-201017/failure-click_3.png"}
+{"ts": 1789776618.582, "event": "step", "step": "click_3", "rung": null, "fell_back": false, "checkpoint_ok": false, "waited_ms": 0, "recoveries": [], "extracted": null, "error": "The app reports an empty Member ID, so our type step did not land. Our bug."}
+{"ts": 1789776618.583, "event": "replay_complete", "classification": "hard_failure", "result": "HardFailure(step=click_3, expected='the search returned a response: either a member detail panel or an alert', observed='The app reports an empty Member ID, so our type step did not land. Our bug.')", "elapsed_ms": 313}

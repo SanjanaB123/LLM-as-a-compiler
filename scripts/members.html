@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<!--
+  LEGACY-HOSTILE TARGET (spike version)
+  Deliberate choices:
+    - Table-based layout (<table> for structure, not data)
+    - NO data-testid, NO id on the important controls, non-semantic <div>/<td> wrappers
+    - BUT: real <label for=...>, real <button>, real roles -> a usable accessibility tree
+  This is the "accessible to a screen reader, hostile to a lazy automator" sweet spot.
+-->
+<html lang="en">
+<head><meta charset="utf-8"><title>CoreBankPro - Member Services</title></head>
+<body>
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td bgcolor="#003366" style="padding:10px;color:white;font-family:Arial">
+    <font size="4">CoreBankPro&trade; Member Services v4</font>
+  </td></tr>
+  <tr><td style="padding:16px;font-family:Arial">
+
+    <!-- SEARCH FORM: labels are real, but fields have no id/name/testid.
+         The only stable anchor for the input is "the textbox after the label 'Member ID'" -->
+    <table border="1" cellpadding="6" cellspacing="0" bgcolor="#f0f0f0">
+      <tr>
+        <td><label for="mid">Member ID</label></td>
+        <td><input type="text" id="mid" aria-label="Member ID"></td>
+        <td><button type="button" onclick="doSearch()">Search</button></td>
+      </tr>
+    </table>
+
+    <div id="result" style="margin-top:20px"></div>
+
+  </td></tr>
+</table>
+
+<script>
+// Fake "backend" - drives the Category A runtime errors we author on purpose.
+// NOTE: this if/else lives in the PAGE, not in our replay code. Replay must
+// read the OUTCOME off the screen, never branch on the id itself.
+function doSearch(){
+  var id = document.getElementById('mid').value.trim();
+  var box = document.getElementById('result');
+  if(id === '99999'){                       // business outcome: not found
+    box.innerHTML = '<div role="alert">No such member.</div>';
+  } else if(id === '00000'){                // business outcome: permission denied
+    box.innerHTML = '<div role="alert">You do not have permission to view this member.</div>';
+  } else if(id === ''){                      // validation error
+    box.innerHTML = '<div role="alert">Please enter a Member ID.</div>';
+  } else {                                   // happy path -> detail panel + balance
+    box.innerHTML =
+      '<table border="1" cellpadding="6" cellspacing="0">' +
+      '<tr><td colspan="2" bgcolor="#ddeeff"><b role="heading" aria-level="2">Member Detail</b></td></tr>' +
+      '<tr><td>Name</td><td>Member ' + id + '</td></tr>' +
+      '<tr><td>Savings Balance</td><td><span aria-label="Savings Balance">$4,182.55</span></td></tr>' +
+      '</table>';
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,587 @@
+{
+  "schema_version": "1.0",
+  "capability_id": "open_sub_account",
+  "name": "Open Sub Account",
+  "description": "open a sub-account for member {member_id} in branch {branch_code} with an initial deposit of {initial_deposit}, leaving the account type at its default, then read the new account number",
+  "product_identity": "CoreBankPro@4",
+  "target": {
+    "surface": "web",
+    "entry_url": "http://127.0.0.1:8000/members.html",
+    "allowed_origins": [
+      "http://127.0.0.1:8000"
+    ],
+    "allowed_routes": [
+      "/members.html"
+    ],
+    "allowed_actions": [],
+    "overrides": {}
+  },
+  "parameters": [
+    {
+      "name": "member_id",
+      "type": "string",
+      "description": "Value supplied for member_id.",
+      "required": true,
+      "sensitive": true,
+      "example": null
+    },
+    {
+      "name": "branch_code",
+      "type": "string",
+      "description": "Value supplied for branch_code.",
+      "required": true,
+      "sensitive": false,
+      "example": null
+    },
+    {
+      "name": "initial_deposit",
+      "type": "string",
+      "description": "Value supplied for initial_deposit.",
+      "required": true,
+      "sensitive": false,
+      "example": null
+    }
+  ],
+  "outputs": [
+    {
+      "name": "new_account_number",
+      "type": "string",
+      "description": "Value read from cell 'New Account Number'."
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "open_application",
+      "action": "navigate",
+      "description": "Open open sub account at the entry URL.",
+      "target": null,
+      "value_ref": "target.entry_url",
+      "extract_to": null,
+      "checkpoint": {
+        "condition": {
+          "kind": "role_name_present",
+          "role": "button",
+          "name": "Search",
+          "exact": true
+        },
+        "description": "button 'Search' is on screen",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "type_1",
+      "action": "type",
+      "description": "The Member ID field is the first required input to locate member {member_id}.",
+      "target": {
+        "rungs": [
+          {
+            "kind": "a11y_role_name",
+            "role": "textbox",
+            "name": "Member ID",
+            "exact": true
+          },
+          {
+            "kind": "a11y_role_name",
+            "role": null,
+            "name": "Member ID",
+            "exact": true
+          },
+          {
+            "kind": "relational",
+            "anchor_text": "Member ID",
+            "relation": "same_row",
+            "target_role": "textbox",
+            "occurrence": 1
+          },
+          {
+            "kind": "structural",
+            "role": "textbox",
+            "index": 0,
+            "container_text": null
+          },
+          {
+            "kind": "coordinates",
+            "x": 169.5,
+            "y": 75.5,
+            "viewport_width": 1280,
+            "viewport_height": 720
+          }
+        ],
+        "robustness_note": "Identifying the textbox 'Member ID'. 5 rung(s) verified against the live surface at record time. Rung 1 — role+name: the control exposes the accessible name 'Member ID', which survives restyling and DOM churn. Rung 1 — name alone: 'Member ID' identifies it without relying on the role the tree assigns. Rung 2 — relational: the textbox sharing a row with the caption 'Member ID' (occurrence 1). Rung 3 — structural: the textbox at position 0 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+      },
+      "value_ref": "params.member_id",
+      "extract_to": null,
+      "checkpoint": {
+        "condition": {
+          "kind": "value_matches_ref",
+          "target": {
+            "rungs": [
+              {
+                "kind": "a11y_role_name",
+                "role": "textbox",
+                "name": "Member ID",
+                "exact": true
+              },
+              {
+                "kind": "a11y_role_name",
+                "role": null,
+                "name": "Member ID",
+                "exact": true
+              },
+              {
+                "kind": "relational",
+                "anchor_text": "Member ID",
+                "relation": "same_row",
+                "target_role": "textbox",
+                "occurrence": 1
+              },
+              {
+                "kind": "structural",
+                "role": "textbox",
+                "index": 0,
+                "container_text": null
+              },
+              {
+                "kind": "coordinates",
+                "x": 169.5,
+                "y": 75.5,
+                "viewport_width": 1280,
+                "viewport_height": 720
+              }
+            ],
+            "robustness_note": "Identifying the textbox 'Member ID'. 5 rung(s) verified against the live surface at record time. Rung 1 — role+name: the control exposes the accessible name 'Member ID', which survives restyling and DOM churn. Rung 1 — name alone: 'Member ID' identifies it without relying on the role the tree assigns. Rung 2 — relational: the textbox sharing a row with the caption 'Member ID' (occurrence 1). Rung 3 — structural: the textbox at position 0 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+          },
+          "value_ref": "params.member_id"
+        },
+        "description": "the field holds the value supplied for params.member_id",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "type_2",
+      "action": "type",
+      "description": "The branch code field needs {branch_code} before searching for the member's account context.",
+      "target": {
+        "rungs": [
+          {
+            "kind": "relational",
+            "anchor_text": "Branch Code",
+            "relation": "same_row",
+            "target_role": "textbox",
+            "occurrence": 1
+          },
+          {
+            "kind": "structural",
+            "role": "textbox",
+            "index": 1,
+            "container_text": null
+          },
+          {
+            "kind": "coordinates",
+            "x": 169.5,
+            "y": 110.5,
+            "viewport_width": 1280,
+            "viewport_height": 720
+          }
+        ],
+        "robustness_note": "Identifying the textbox (unnamed). 3 rung(s) verified against the live surface at record time. NO RUNG 1: this control has no accessible name at all, so role+name cannot address it. The relational rung is therefore load-bearing rather than a fallback. Rung 2 — relational: the textbox sharing a row with the caption 'Branch Code' (occurrence 1). Rung 3 — structural: the textbox at position 1 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+      },
+      "value_ref": "params.branch_code",
+      "extract_to": null,
+      "checkpoint": {
+        "condition": {
+          "kind": "value_matches_ref",
+          "target": {
+            "rungs": [
+              {
+                "kind": "relational",
+                "anchor_text": "Branch Code",
+                "relation": "same_row",
+                "target_role": "textbox",
+                "occurrence": 1
+              },
+              {
+                "kind": "structural",
+                "role": "textbox",
+                "index": 1,
+                "container_text": null
+              },
+              {
+                "kind": "coordinates",
+                "x": 169.5,
+                "y": 110.5,
+                "viewport_width": 1280,
+                "viewport_height": 720
+              }
+            ],
+            "robustness_note": "Identifying the textbox (unnamed). 3 rung(s) verified against the live surface at record time. NO RUNG 1: this control has no accessible name at all, so role+name cannot address it. The relational rung is therefore load-bearing rather than a fallback. Rung 2 — relational: the textbox sharing a row with the caption 'Branch Code' (occurrence 1). Rung 3 — structural: the textbox at position 1 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+          },
+          "value_ref": "params.branch_code"
+        },
+        "description": "the field holds the value supplied for params.branch_code",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "click_3",
+      "action": "click",
+      "description": "With member ID and branch code entered, search to load the member record so sub-account options appear.",
+      "target": {
+        "rungs": [
+          {
+            "kind": "a11y_role_name",
+            "role": "button",
+            "name": "Search",
+            "exact": true
+          },
+          {
+            "kind": "structural",
+            "role": "button",
+            "index": 0,
+            "container_text": null
+          },
+          {
+            "kind": "coordinates",
+            "x": 196.0,
+            "y": 145.5,
+            "viewport_width": 1280,
+            "viewport_height": 720
+          }
+        ],
+        "robustness_note": "Identifying the button 'Search'. 3 rung(s) verified against the live surface at record time. Rung 1 — role+name: the control exposes the accessible name 'Search', which survives restyling and DOM churn. Rung 3 — structural: the button at position 0 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+      },
+      "value_ref": null,
+      "extract_to": null,
+      "checkpoint": {
+        "condition": {
+          "kind": "any_of",
+          "conditions": [
+            {
+              "kind": "role_name_present",
+              "role": "heading",
+              "name": "Member Detail",
+              "exact": true
+            },
+            {
+              "kind": "text_present",
+              "text": "",
+              "role": "alert",
+              "exact": false
+            }
+          ]
+        },
+        "description": "the search returned a response: a member panel or an alert",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "click_4",
+      "action": "click",
+      "description": "The member record is loaded, so I click 'Open Sub-Account' to start creating the sub-account.",
+      "target": {
+        "rungs": [
+          {
+            "kind": "a11y_role_name",
+            "role": "button",
+            "name": "Open Sub-Account",
+            "exact": true
+          },
+          {
+            "kind": "structural",
+            "role": "button",
+            "index": 1,
+            "container_text": null
+          },
+          {
+            "kind": "coordinates",
+            "x": 80.5,
+            "y": 325.5,
+            "viewport_width": 1280,
+            "viewport_height": 720
+          }
+        ],
+        "robustness_note": "Identifying the button 'Open Sub-Account'. 3 rung(s) verified against the live surface at record time. Rung 1 — role+name: the control exposes the accessible name 'Open Sub-Account', which survives restyling and DOM churn. Rung 3 — structural: the button at position 1 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+      },
+      "value_ref": null,
+      "extract_to": null,
+      "checkpoint": {
+        "condition": {
+          "kind": "any_of",
+          "conditions": [
+            {
+              "kind": "role_name_present",
+              "role": "heading",
+              "name": "Open Sub-Account",
+              "exact": true
+            },
+            {
+              "kind": "text_present",
+              "text": "",
+              "role": "alert",
+              "exact": false
+            }
+          ]
+        },
+        "description": "the sub-account form opened, or an alert explains why not",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "type_5",
+      "action": "type",
+      "description": "The initial deposit field is empty and needs the value {initial_deposit} before confirming.",
+      "target": {
+        "rungs": [
+          {
+            "kind": "a11y_role_name",
+            "role": "textbox",
+            "name": "Initial Deposit",
+            "exact": true
+          },
+          {
+            "kind": "a11y_role_name",
+            "role": null,
+            "name": "Initial Deposit",
+            "exact": true
+          },
+          {
+            "kind": "relational",
+            "anchor_text": "Initial Deposit",
+            "relation": "same_row",
+            "target_role": "textbox",
+            "occurrence": 1
+          },
+          {
+            "kind": "structural",
+            "role": "textbox",
+            "index": 2,
+            "container_text": null
+          },
+          {
+            "kind": "coordinates",
+            "x": 172.5,
+            "y": 250.5,
+            "viewport_width": 1280,
+            "viewport_height": 720
+          }
+        ],
+        "robustness_note": "Identifying the textbox 'Initial Deposit'. 5 rung(s) verified against the live surface at record time. Rung 1 — role+name: the control exposes the accessible name 'Initial Deposit', which survives restyling and DOM churn. Rung 1 — name alone: 'Initial Deposit' identifies it without relying on the role the tree assigns. Rung 2 — relational: the textbox sharing a row with the caption 'Initial Deposit' (occurrence 1). Rung 3 — structural: the textbox at position 2 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+      },
+      "value_ref": "params.initial_deposit",
+      "extract_to": null,
+      "checkpoint": {
+        "condition": {
+          "kind": "value_matches_ref",
+          "target": {
+            "rungs": [
+              {
+                "kind": "a11y_role_name",
+                "role": "textbox",
+                "name": "Initial Deposit",
+                "exact": true
+              },
+              {
+                "kind": "a11y_role_name",
+                "role": null,
+                "name": "Initial Deposit",
+                "exact": true
+              },
+              {
+                "kind": "relational",
+                "anchor_text": "Initial Deposit",
+                "relation": "same_row",
+                "target_role": "textbox",
+                "occurrence": 1
+              },
+              {
+                "kind": "structural",
+                "role": "textbox",
+                "index": 2,
+                "container_text": null
+              },
+              {
+                "kind": "coordinates",
+                "x": 172.5,
+                "y": 250.5,
+                "viewport_width": 1280,
+                "viewport_height": 720
+              }
+            ],
+            "robustness_note": "Identifying the textbox 'Initial Deposit'. 5 rung(s) verified against the live surface at record time. Rung 1 — role+name: the control exposes the accessible name 'Initial Deposit', which survives restyling and DOM churn. Rung 1 — name alone: 'Initial Deposit' identifies it without relying on the role the tree assigns. Rung 2 — relational: the textbox sharing a row with the caption 'Initial Deposit' (occurrence 1). Rung 3 — structural: the textbox at position 2 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+          },
+          "value_ref": "params.initial_deposit"
+        },
+        "description": "the field holds the value supplied for params.initial_deposit",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "click_6",
+      "action": "click",
+      "description": "The form is filled with member {member_id}, branch {branch_code}, default Savings type, and {initial_deposit} deposit, so I confirm to open the sub-account.",
+      "target": {
+        "rungs": [
+          {
+            "kind": "a11y_role_name",
+            "role": "button",
+            "name": "Confirm",
+            "exact": true
+          },
+          {
+            "kind": "structural",
+            "role": "button",
+            "index": 1,
+            "container_text": null
+          },
+          {
+            "kind": "coordinates",
+            "x": 47.5,
+            "y": 292.5,
+            "viewport_width": 1280,
+            "viewport_height": 720
+          }
+        ],
+        "robustness_note": "Identifying the button 'Confirm'. 3 rung(s) verified against the live surface at record time. Rung 1 — role+name: the control exposes the accessible name 'Confirm', which survives restyling and DOM churn. Rung 3 — structural: the button at position 1 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+      },
+      "value_ref": null,
+      "extract_to": null,
+      "checkpoint": {
+        "condition": {
+          "kind": "any_of",
+          "conditions": [
+            {
+              "kind": "role_name_present",
+              "role": "heading",
+              "name": "Sub-Account Opened",
+              "exact": true
+            },
+            {
+              "kind": "text_present",
+              "text": "",
+              "role": "alert",
+              "exact": false
+            }
+          ]
+        },
+        "description": "the confirmation returned a response: an account, or an alert",
+        "timeout_ms": 8000
+      },
+      "risk": "irreversible"
+    },
+    {
+      "step_id": "read_new_account_number",
+      "action": "read",
+      "description": "The new account number is displayed and must be captured.",
+      "target": {
+        "rungs": [
+          {
+            "kind": "relational",
+            "anchor_text": "New Account Number",
+            "relation": "same_row",
+            "target_role": "cell",
+            "occurrence": 2
+          },
+          {
+            "kind": "structural",
+            "role": "cell",
+            "index": 8,
+            "container_text": null
+          },
+          {
+            "kind": "coordinates",
+            "x": 213.0,
+            "y": 214.5,
+            "viewport_width": 1280,
+            "viewport_height": 720
+          }
+        ],
+        "robustness_note": "Identifying the cell 'New Account Number'. 3 rung(s) verified against the live surface at record time. NO RUNG 1: the name 'New Account Number' is not unique here — the accessibility tree gives it to more than one element — so role+name cannot address this one unambiguously. The relational rung is therefore load-bearing rather than a fallback. Rung 2 — relational: the cell sharing a row with the caption 'New Account Number' (occurrence 2). Rung 3 — structural: the cell at position 8 in reading order, which breaks if a control is inserted before it. Rung 4 — coordinates: last resort, viewport-bound, and the only rung that would still work on a surface with no queryable tree at all."
+      },
+      "value_ref": null,
+      "extract_to": "new_account_number",
+      "checkpoint": {
+        "condition": {
+          "kind": "role_name_present",
+          "role": "heading",
+          "name": "Sub-Account Opened",
+          "exact": true
+        },
+        "description": "heading 'Sub-Account Opened' is on screen",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    }
+  ],
+  "known_outcomes": [
+    {
+      "name": "sub_account_opened",
+      "detect": {
+        "kind": "role_name_present",
+        "role": "heading",
+        "name": "Sub-Account Opened",
+        "exact": true
+      },
+      "classification": "success",
+      "message": "The sub-account was created and its number read."
+    },
+    {
+      "name": "approval_limit_exceeded",
+      "detect": {
+        "kind": "text_present",
+        "text": "Manager approval required",
+        "role": "alert",
+        "exact": false
+      },
+      "classification": "business_outcome",
+      "message": "The deposit exceeds this operator's approval limit. A real answer: the bank declined, and a human with a higher limit must finish it."
+    },
+    {
+      "name": "member_not_found",
+      "detect": {
+        "kind": "text_present",
+        "text": "No such member",
+        "role": "alert",
+        "exact": false
+      },
+      "classification": "business_outcome",
+      "message": "No member exists with that ID, so there is nothing to open a sub-account against."
+    },
+    {
+      "name": "permission_denied",
+      "detect": {
+        "kind": "text_present",
+        "text": "do not have permission",
+        "role": "alert",
+        "exact": false
+      },
+      "classification": "business_outcome",
+      "message": "The operating account may not view this member."
+    },
+    {
+      "name": "invalid_deposit",
+      "detect": {
+        "kind": "text_present",
+        "text": "valid initial deposit",
+        "role": "alert",
+        "exact": false
+      },
+      "classification": "hard_failure",
+      "message": "The app rejected the deposit as unparseable, so our type step sent something wrong. Our bug."
+    }
+  ],
+  "recoveries": [],
+  "status": "approved",
+  "provenance": {
+    "discovered_by": "claude-opus-5",
+    "discovered_at": "20260918-202638",
+    "evidence_ref": "evidence/discovery-20260918-202638",
+    "approved_by": "sanjana",
+    "approved_at": "20260918-202737"
+  }
+}

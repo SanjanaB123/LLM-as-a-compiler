@@ -1,0 +1,1187 @@
+{
+  "$defs": {
+    "A11yRoleNameLocator": {
+      "additionalProperties": false,
+      "description": "RUNG 1 \u2014 sturdiest. Survives restyling, DOM refactors, and class churn.\n\nFree from perception: this is exactly what `observe()` already reports.\n\n`role` is optional, meaning \"the element whose accessible name is this,\nwhatever its role\". M0 forced this: the target app's balance is a span with\naria-label=\"Savings Balance\", and the a11y tree hands that name to the\nenclosing table cell as well \u2014 so role+name is ambiguous while name alone is\nexact. Name-only is still a rung-1 identification: it is precisely what a\nscreen-reader user navigates by.",
+      "properties": {
+        "kind": {
+          "const": "a11y_role_name",
+          "default": "a11y_role_name",
+          "title": "Kind",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "exact": {
+          "default": false,
+          "title": "Exact",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "A11yRoleNameLocator",
+      "type": "object"
+    },
+    "Action": {
+      "description": "Exactly the Driver verbs \u2014 the artifact cannot express anything the seam\ndoesn't offer, which is what keeps it surface-independent.",
+      "enum": [
+        "navigate",
+        "click",
+        "type",
+        "read"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "AllOf": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "all_of",
+          "default": "all_of",
+          "title": "Kind",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "all_of": "#/$defs/AllOf",
+                "any_of": "#/$defs/AnyOf",
+                "aria_snapshot_matches": "#/$defs/AriaSnapshotMatches",
+                "not_": "#/$defs/Not",
+                "role_name_present": "#/$defs/RoleNamePresent",
+                "text_absent": "#/$defs/TextAbsent",
+                "text_present": "#/$defs/TextPresent",
+                "value_matches_ref": "#/$defs/ValueMatchesRef"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/RoleNamePresent"
+              },
+              {
+                "$ref": "#/$defs/TextPresent"
+              },
+              {
+                "$ref": "#/$defs/TextAbsent"
+              },
+              {
+                "$ref": "#/$defs/ValueMatchesRef"
+              },
+              {
+                "$ref": "#/$defs/AriaSnapshotMatches"
+              },
+              {
+                "$ref": "#/$defs/AllOf"
+              },
+              {
+                "$ref": "#/$defs/AnyOf"
+              },
+              {
+                "$ref": "#/$defs/Not"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AllOf",
+      "type": "object"
+    },
+    "AnyOf": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "any_of",
+          "default": "any_of",
+          "title": "Kind",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "all_of": "#/$defs/AllOf",
+                "any_of": "#/$defs/AnyOf",
+                "aria_snapshot_matches": "#/$defs/AriaSnapshotMatches",
+                "not_": "#/$defs/Not",
+                "role_name_present": "#/$defs/RoleNamePresent",
+                "text_absent": "#/$defs/TextAbsent",
+                "text_present": "#/$defs/TextPresent",
+                "value_matches_ref": "#/$defs/ValueMatchesRef"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/RoleNamePresent"
+              },
+              {
+                "$ref": "#/$defs/TextPresent"
+              },
+              {
+                "$ref": "#/$defs/TextAbsent"
+              },
+              {
+                "$ref": "#/$defs/ValueMatchesRef"
+              },
+              {
+                "$ref": "#/$defs/AriaSnapshotMatches"
+              },
+              {
+                "$ref": "#/$defs/AllOf"
+              },
+              {
+                "$ref": "#/$defs/AnyOf"
+              },
+              {
+                "$ref": "#/$defs/Not"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AnyOf",
+      "type": "object"
+    },
+    "AriaSnapshotMatches": {
+      "additionalProperties": false,
+      "description": "Playwright's `to_match_aria_snapshot` as a native checkpoint primitive\n(handed to us by the spike): assert a whole subtree's shape at once.",
+      "properties": {
+        "kind": {
+          "const": "aria_snapshot_matches",
+          "default": "aria_snapshot_matches",
+          "title": "Kind",
+          "type": "string"
+        },
+        "snapshot": {
+          "title": "Snapshot",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot"
+      ],
+      "title": "AriaSnapshotMatches",
+      "type": "object"
+    },
+    "Checkpoint": {
+      "additionalProperties": false,
+      "description": "Every step has one (plan decision #8) \u2014 deterministic must not mean blind.\n\n`timeout_ms` is how determinism survives transient slowness: replay waits on\nthe condition rather than sleeping blindly. `description` is the human-\nreadable *expected* that a `HardFailure` reports.",
+      "properties": {
+        "condition": {
+          "discriminator": {
+            "mapping": {
+              "all_of": "#/$defs/AllOf",
+              "any_of": "#/$defs/AnyOf",
+              "aria_snapshot_matches": "#/$defs/AriaSnapshotMatches",
+              "not_": "#/$defs/Not",
+              "role_name_present": "#/$defs/RoleNamePresent",
+              "text_absent": "#/$defs/TextAbsent",
+              "text_present": "#/$defs/TextPresent",
+              "value_matches_ref": "#/$defs/ValueMatchesRef"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RoleNamePresent"
+            },
+            {
+              "$ref": "#/$defs/TextPresent"
+            },
+            {
+              "$ref": "#/$defs/TextAbsent"
+            },
+            {
+              "$ref": "#/$defs/ValueMatchesRef"
+            },
+            {
+              "$ref": "#/$defs/AriaSnapshotMatches"
+            },
+            {
+              "$ref": "#/$defs/AllOf"
+            },
+            {
+              "$ref": "#/$defs/AnyOf"
+            },
+            {
+              "$ref": "#/$defs/Not"
+            }
+          ],
+          "title": "Condition"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "timeout_ms": {
+          "default": 5000,
+          "maximum": 120000,
+          "minimum": 0,
+          "title": "Timeout Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "condition",
+        "description"
+      ],
+      "title": "Checkpoint",
+      "type": "object"
+    },
+    "Classification": {
+      "description": "The taxonomy replay sorts every step result into (M4).\n\n`BUSINESS_OUTCOME` is the load-bearing one: \"no such member\" is a legitimate\nanswer to return, not a crash. Conflating the two is the brief's named #1\nmistake, so the distinction lives in the schema, not in replay's judgement.",
+      "enum": [
+        "success",
+        "business_outcome",
+        "recoverable",
+        "hard_failure",
+        "refused"
+      ],
+      "title": "Classification",
+      "type": "string"
+    },
+    "CoordinatesLocator": {
+      "additionalProperties": false,
+      "description": "RUNG 4 \u2014 most fragile, last resort, and the reason the ladder reaches the\nno-DOM case at all: a desktop surface can still be clicked by point.\n\nCaptured free and inline with perception via `aria_snapshot(boxes=True)`, so\nrecording it costs nothing. Viewport-relative, hence the recorded viewport \u2014\ncoordinates without it are meaningless.",
+      "properties": {
+        "kind": {
+          "const": "coordinates",
+          "default": "coordinates",
+          "title": "Kind",
+          "type": "string"
+        },
+        "x": {
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "title": "Y",
+          "type": "number"
+        },
+        "viewport_width": {
+          "title": "Viewport Width",
+          "type": "integer"
+        },
+        "viewport_height": {
+          "title": "Viewport Height",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "viewport_width",
+        "viewport_height"
+      ],
+      "title": "CoordinatesLocator",
+      "type": "object"
+    },
+    "Not": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "not_",
+          "default": "not_",
+          "title": "Kind",
+          "type": "string"
+        },
+        "condition": {
+          "discriminator": {
+            "mapping": {
+              "all_of": "#/$defs/AllOf",
+              "any_of": "#/$defs/AnyOf",
+              "aria_snapshot_matches": "#/$defs/AriaSnapshotMatches",
+              "not_": "#/$defs/Not",
+              "role_name_present": "#/$defs/RoleNamePresent",
+              "text_absent": "#/$defs/TextAbsent",
+              "text_present": "#/$defs/TextPresent",
+              "value_matches_ref": "#/$defs/ValueMatchesRef"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RoleNamePresent"
+            },
+            {
+              "$ref": "#/$defs/TextPresent"
+            },
+            {
+              "$ref": "#/$defs/TextAbsent"
+            },
+            {
+              "$ref": "#/$defs/ValueMatchesRef"
+            },
+            {
+              "$ref": "#/$defs/AriaSnapshotMatches"
+            },
+            {
+              "$ref": "#/$defs/AllOf"
+            },
+            {
+              "$ref": "#/$defs/AnyOf"
+            },
+            {
+              "$ref": "#/$defs/Not"
+            }
+          ],
+          "title": "Condition"
+        }
+      },
+      "required": [
+        "condition"
+      ],
+      "title": "Not",
+      "type": "object"
+    },
+    "Outcome": {
+      "additionalProperties": false,
+      "description": "A known end state, detected on screen by `detect`.",
+      "properties": {
+        "name": {
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "detect": {
+          "discriminator": {
+            "mapping": {
+              "all_of": "#/$defs/AllOf",
+              "any_of": "#/$defs/AnyOf",
+              "aria_snapshot_matches": "#/$defs/AriaSnapshotMatches",
+              "not_": "#/$defs/Not",
+              "role_name_present": "#/$defs/RoleNamePresent",
+              "text_absent": "#/$defs/TextAbsent",
+              "text_present": "#/$defs/TextPresent",
+              "value_matches_ref": "#/$defs/ValueMatchesRef"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RoleNamePresent"
+            },
+            {
+              "$ref": "#/$defs/TextPresent"
+            },
+            {
+              "$ref": "#/$defs/TextAbsent"
+            },
+            {
+              "$ref": "#/$defs/ValueMatchesRef"
+            },
+            {
+              "$ref": "#/$defs/AriaSnapshotMatches"
+            },
+            {
+              "$ref": "#/$defs/AllOf"
+            },
+            {
+              "$ref": "#/$defs/AnyOf"
+            },
+            {
+              "$ref": "#/$defs/Not"
+            }
+          ],
+          "title": "Detect"
+        },
+        "classification": {
+          "$ref": "#/$defs/Classification"
+        },
+        "message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message"
+        }
+      },
+      "required": [
+        "name",
+        "detect",
+        "classification"
+      ],
+      "title": "Outcome",
+      "type": "object"
+    },
+    "Output": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ValueType"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "description"
+      ],
+      "title": "Output",
+      "type": "object"
+    },
+    "Parameter": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/ValueType"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "sensitive": {
+          "default": false,
+          "title": "Sensitive",
+          "type": "boolean"
+        },
+        "example": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Example"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "description"
+      ],
+      "title": "Parameter",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where this artifact came from \u2014 the link between a capability and the\ndiscovery transcript in /evidence/, and the record of who approved it.",
+      "properties": {
+        "discovered_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "model id",
+          "title": "Discovered By"
+        },
+        "discovered_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Discovered At"
+        },
+        "evidence_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "path under /evidence/",
+          "title": "Evidence Ref"
+        },
+        "approved_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approved By"
+        },
+        "approved_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approved At"
+        }
+      },
+      "title": "Provenance",
+      "type": "object"
+    },
+    "Recovery": {
+      "additionalProperties": false,
+      "description": "A known interstitial or slow load: handled in-loop and the run continues,\nwhich is why `Recoverable` is a behaviour rather than a terminal result.",
+      "properties": {
+        "name": {
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "detect": {
+          "discriminator": {
+            "mapping": {
+              "all_of": "#/$defs/AllOf",
+              "any_of": "#/$defs/AnyOf",
+              "aria_snapshot_matches": "#/$defs/AriaSnapshotMatches",
+              "not_": "#/$defs/Not",
+              "role_name_present": "#/$defs/RoleNamePresent",
+              "text_absent": "#/$defs/TextAbsent",
+              "text_present": "#/$defs/TextPresent",
+              "value_matches_ref": "#/$defs/ValueMatchesRef"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RoleNamePresent"
+            },
+            {
+              "$ref": "#/$defs/TextPresent"
+            },
+            {
+              "$ref": "#/$defs/TextAbsent"
+            },
+            {
+              "$ref": "#/$defs/ValueMatchesRef"
+            },
+            {
+              "$ref": "#/$defs/AriaSnapshotMatches"
+            },
+            {
+              "$ref": "#/$defs/AllOf"
+            },
+            {
+              "$ref": "#/$defs/AnyOf"
+            },
+            {
+              "$ref": "#/$defs/Not"
+            }
+          ],
+          "title": "Detect"
+        },
+        "strategy": {
+          "enum": [
+            "dismiss",
+            "wait_retry"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "dismiss_target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TargetLadder"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "max_attempts": {
+          "default": 2,
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Max Attempts",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "detect",
+        "strategy"
+      ],
+      "title": "Recovery",
+      "type": "object"
+    },
+    "RelationalLocator": {
+      "additionalProperties": false,
+      "description": "RUNG 2 \u2014 anchored on a neighbouring label instead of the control itself.\n\nEarns its place on controls with no accessible name of their own (\"the\ntextbox after the label 'Member ID'\"). Survives everything rung 1 does\nexcept a renamed anchor.",
+      "properties": {
+        "kind": {
+          "const": "relational",
+          "default": "relational",
+          "title": "Kind",
+          "type": "string"
+        },
+        "anchor_text": {
+          "title": "Anchor Text",
+          "type": "string"
+        },
+        "relation": {
+          "enum": [
+            "after",
+            "before",
+            "below",
+            "above",
+            "same_row",
+            "within"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "target_role": {
+          "title": "Target Role",
+          "type": "string"
+        },
+        "occurrence": {
+          "default": 1,
+          "description": "1-based nth match",
+          "minimum": 1,
+          "title": "Occurrence",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "anchor_text",
+        "relation",
+        "target_role"
+      ],
+      "title": "RelationalLocator",
+      "type": "object"
+    },
+    "Risk": {
+      "enum": [
+        "safe",
+        "irreversible"
+      ],
+      "title": "Risk",
+      "type": "string"
+    },
+    "RoleNamePresent": {
+      "additionalProperties": false,
+      "description": "An element with this role+name is on screen.",
+      "properties": {
+        "kind": {
+          "const": "role_name_present",
+          "default": "role_name_present",
+          "title": "Kind",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "exact": {
+          "default": false,
+          "title": "Exact",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "role",
+        "name"
+      ],
+      "title": "RoleNamePresent",
+      "type": "object"
+    },
+    "Status": {
+      "enum": [
+        "draft",
+        "approved"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "Step": {
+      "additionalProperties": false,
+      "properties": {
+        "step_id": {
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TargetLadder"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "required for click/type/read; navigate has no target"
+        },
+        "value_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "reference to the value consumed (params.*/target.*/outputs.*). NEVER a literal \u2014 that is the redaction guarantee.",
+          "title": "Value Ref"
+        },
+        "extract_to": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "name of the declared output this step binds",
+          "title": "Extract To"
+        },
+        "checkpoint": {
+          "$ref": "#/$defs/Checkpoint"
+        },
+        "risk": {
+          "$ref": "#/$defs/Risk",
+          "default": "safe"
+        }
+      },
+      "required": [
+        "step_id",
+        "action",
+        "description",
+        "checkpoint"
+      ],
+      "title": "Step",
+      "type": "object"
+    },
+    "StructuralLocator": {
+      "additionalProperties": false,
+      "description": "RUNG 3 \u2014 position within the page/container structure, or visible text.\n\nNo accessible name and no usable anchor: fall back to \"the 2nd textbox in\nthe section titled X\". Breaks when controls are reordered.",
+      "properties": {
+        "kind": {
+          "const": "structural",
+          "default": "structural",
+          "title": "Kind",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "index": {
+          "description": "0-based index among matching roles",
+          "minimum": 0,
+          "title": "Index",
+          "type": "integer"
+        },
+        "container_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "visible text of the enclosing section/row, if any",
+          "title": "Container Text"
+        }
+      },
+      "required": [
+        "role",
+        "index"
+      ],
+      "title": "StructuralLocator",
+      "type": "object"
+    },
+    "TargetLadder": {
+      "additionalProperties": false,
+      "description": "How one control is identified, with the reasoning about robustness.\n\nReplay resolves these in order and falls to the next rung only on failure.\n`robustness_note` is not decoration \u2014 it is where \"how each control is\nidentified, and why that identification should hold\" literally lives, and it\nis what a human reads at approval time.",
+      "properties": {
+        "rungs": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "a11y_role_name": "#/$defs/A11yRoleNameLocator",
+                "coordinates": "#/$defs/CoordinatesLocator",
+                "relational": "#/$defs/RelationalLocator",
+                "structural": "#/$defs/StructuralLocator"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/A11yRoleNameLocator"
+              },
+              {
+                "$ref": "#/$defs/RelationalLocator"
+              },
+              {
+                "$ref": "#/$defs/StructuralLocator"
+              },
+              {
+                "$ref": "#/$defs/CoordinatesLocator"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Rungs",
+          "type": "array"
+        },
+        "robustness_note": {
+          "minLength": 1,
+          "title": "Robustness Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rungs",
+        "robustness_note"
+      ],
+      "title": "TargetLadder",
+      "type": "object"
+    },
+    "TargetSurface": {
+      "additionalProperties": false,
+      "description": "THE TENANT SLOT. Everything environment-specific lives here and nowhere\nelse, so a second tenant of the same product is a thin overlay of deltas.\n\n`allowed_origins` is also the safety allowlist the Driver enforces (M5) \u2014\nwhich is why the app is served over real HTTP and not file://.",
+      "properties": {
+        "surface": {
+          "default": "web",
+          "enum": [
+            "web",
+            "desktop"
+          ],
+          "title": "Surface",
+          "type": "string"
+        },
+        "entry_url": {
+          "title": "Entry Url",
+          "type": "string"
+        },
+        "allowed_origins": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Origins",
+          "type": "array"
+        },
+        "allowed_routes": {
+          "description": "glob patterns over the URL path. An origin is not a fine enough unit: a bank's admin console and its member search share one, and only one of them is in scope for a given capability.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Routes",
+          "type": "array"
+        },
+        "allowed_actions": {
+          "description": "permitted action verbs; empty means all. A read-only capability can be stopped from ever typing.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Actions",
+          "type": "array"
+        },
+        "overrides": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "per-tenant deltas, e.g. a renamed label. Design-only for now; the slot exists so nothing above it is hardwired.",
+          "title": "Overrides",
+          "type": "object"
+        }
+      },
+      "required": [
+        "entry_url",
+        "allowed_origins"
+      ],
+      "title": "TargetSurface",
+      "type": "object"
+    },
+    "TextAbsent": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "text_absent",
+          "default": "text_absent",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "exact": {
+          "default": false,
+          "title": "Exact",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "TextAbsent",
+      "type": "object"
+    },
+    "TextPresent": {
+      "additionalProperties": false,
+      "description": "This text is visible, optionally scoped to a role (e.g. role=\"alert\").\n\nThis is how a business outcome is detected: read generically off the screen.\nReplay must never reach the same conclusion by branching on the input value.\n\nAn empty `text` with a `role` set means \"any element with that role is\npresent\" \u2014 used for the checkpoint \"the search responded somehow\", which must\npass whether the response is a detail panel or an error alert. Narrowing that\ncheckpoint to only the happy path would turn every business outcome into a\nstep failure.",
+      "properties": {
+        "kind": {
+          "const": "text_present",
+          "default": "text_present",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role"
+        },
+        "exact": {
+          "default": false,
+          "title": "Exact",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "TextPresent",
+      "type": "object"
+    },
+    "ValueMatchesRef": {
+      "additionalProperties": false,
+      "description": "A field now holds the value behind `value_ref`.\n\nThe natural checkpoint after a `type` step \u2014 and it verifies a sensitive\nvalue without the artifact ever containing it.\n\nIt carries a whole `TargetLadder` rather than a role+name because the field\nworth checking is often the one with no accessible name: the target app's\nBranch Code input is reachable only at rung 2, so a role+name checkpoint\ncould not describe it. The cost is that a step's ladder is repeated in its\ncheckpoint; the gain is that a `Condition` stays self-contained, which\nmatters because outcomes evaluate conditions with no step in scope.",
+      "properties": {
+        "kind": {
+          "const": "value_matches_ref",
+          "default": "value_matches_ref",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/TargetLadder"
+        },
+        "value_ref": {
+          "title": "Value Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target",
+        "value_ref"
+      ],
+      "title": "ValueMatchesRef",
+      "type": "object"
+    },
+    "ValueType": {
+      "enum": [
+        "string",
+        "integer",
+        "number",
+        "boolean"
+      ],
+      "title": "ValueType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A recorded capability: the compiled program replay executes.\n\nDiscovery emits `draft`. A human confirms the proposed checkpoints and\nhand-authors the `known_outcomes` discovery never walked, then marks it\n`approved` \u2014 which is why approval requires at least one outcome.",
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "capability_id": {
+      "pattern": "^[a-z_][a-z0-9_]*$",
+      "title": "Capability Id",
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "description": {
+      "minLength": 1,
+      "title": "Description",
+      "type": "string"
+    },
+    "product_identity": {
+      "description": "tags \"same app\", e.g. CoreBankPro@4",
+      "minLength": 1,
+      "title": "Product Identity",
+      "type": "string"
+    },
+    "target": {
+      "$ref": "#/$defs/TargetSurface"
+    },
+    "parameters": {
+      "items": {
+        "$ref": "#/$defs/Parameter"
+      },
+      "title": "Parameters",
+      "type": "array"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/$defs/Output"
+      },
+      "title": "Outputs",
+      "type": "array"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/Step"
+      },
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+    },
+    "known_outcomes": {
+      "items": {
+        "$ref": "#/$defs/Outcome"
+      },
+      "title": "Known Outcomes",
+      "type": "array"
+    },
+    "recoveries": {
+      "items": {
+        "$ref": "#/$defs/Recovery"
+      },
+      "title": "Recoveries",
+      "type": "array"
+    },
+    "status": {
+      "$ref": "#/$defs/Status",
+      "default": "draft"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Provenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "capability_id",
+    "name",
+    "description",
+    "product_identity",
+    "target",
+    "steps"
+  ],
+  "title": "Artifact",
+  "type": "object"
+}

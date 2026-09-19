@@ -1,0 +1,12 @@
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.DS_Store
+
+# evidence/ IS a deliverable and is committed: every transcript is redacted by
+# the logger before it is written, so there is nothing in here to withhold.
+# Screenshots are the one exception worth thinking about — they are pixels, so
+# redaction cannot reach them. They are kept because a failure screenshot is
+# the point, and the app is a local fake with no real data in it.

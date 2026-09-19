@@ -1,0 +1,4 @@
+{"ts": 1789777822.9, "event": "replay_start", "capability": "open_sub_account"}
+{"ts": 1789777822.9, "event": "refused", "step": "open_application", "reason": "navigation to '/admin.html' is outside the permitted routes ['/members.html'] \u2014 the origin is allowed but this page is not"}
+{"ts": 1789777822.9, "event": "step", "step": "open_application", "rung": null, "fell_back": false, "checkpoint_ok": false, "waited_ms": 0, "recoveries": [], "extracted": null, "error": "navigation to '/admin.html' is outside the permitted routes ['/members.html'] \u2014 the origin is allowed but this page is not"}
+{"ts": 1789777822.911, "event": "replay_complete", "classification": "refused", "result": "Refused(step=open_application, reason=\"navigation to '/admin.html' is outside the permitted routes ['/members.html'] \u2014 the origin is allowed but this page is not\")", "elapsed_ms": 1}

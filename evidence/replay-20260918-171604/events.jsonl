@@ -1,0 +1,6 @@
+{"ts": 1789766165.347, "event": "replay_start", "capability": "lookup_member_balance"}
+{"ts": 1789766165.471, "event": "step", "step": "open_application", "rung": null, "fell_back": false, "checkpoint_ok": true, "waited_ms": 25, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789766165.511, "event": "step", "step": "type_1", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 4, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789766165.544, "event": "step", "step": "type_2", "rung": 2, "fell_back": false, "checkpoint_ok": true, "waited_ms": 9, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789766165.583, "event": "step", "step": "click_3", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789766165.584, "event": "replay_complete", "classification": "business_outcome", "result": "BusinessOutcome(permission_denied)", "elapsed_ms": 239}

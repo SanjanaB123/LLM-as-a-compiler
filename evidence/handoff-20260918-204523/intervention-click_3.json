@@ -1,0 +1,11 @@
+{
+  "capability_id": "lookup_member_balance",
+  "step_id": "click_3",
+  "what_it_was_doing": "Both fields are filled, so clicking Search submits the lookup to retrieve the member's savings balance.",
+  "expected": "the search returned a response: either a member detail panel or an alert",
+  "observed": "url=http://127.0.0.1:8000/members.html?blocker=1 | heading=['Supervisor Override Required'] | controls present: button 'Search', button 'Override', textbox 'Member ID', textbox",
+  "cdp_url": "http://127.0.0.1:62337",
+  "page_url": "http://127.0.0.1:8000/members.html?blocker=1",
+  "screenshot": "evidence/handoff-20260918-204523/failure-click_3.png",
+  "raised_at": 1789778732.459353
+}

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<!--
+  CoreBankPro(TM) Member Services v4 — the local legacy-hostile target.
+
+  Promoted from scripts/members.html (the spike page) with the two things the
+  spike lacked: a second search field with NO accessible name, and the write
+  flow.
+
+  Deliberate choices:
+    - Table-based layout (<table> for structure, not data), <font>, bgcolor
+    - NO data-testid, NO id on the controls that matter
+    - BUT real <label for=...>, real <button>, real <select>, real roles
+      -> an honest accessibility tree
+  "Accessible to a screen reader, hostile to a lazy automator" — so targeting
+  has to be real instead of cheating with test IDs.
+
+  WHY THE BRANCH CODE FIELD HAS NO LABEL ELEMENT:
+    Its caption is a bare table cell, so the input has no accessible name at
+    all. Rung 1 (role+name) is IMPOSSIBLE there — it can only be reached as
+    "the textbox after the text 'Branch Code'". That is rung 2 (relational)
+    doing real work in the star capability, which is the only way to prove the
+    ladder isn't decorative.
+
+  AUTHORED RUNTIME ERRORS (Category A — errors we can produce on demand):
+    member 99999      -> "No such member."                 business outcome
+    member 00000      -> permission denied                 business outcome
+    member blank      -> validation error                   our bug, not an answer
+    branch blank      -> validation error                   our bug, not an answer
+    deposit > 10,000  -> manager approval required          business outcome + the
+                                                            natural handoff trigger
+    ?maintenance=1    -> interstitial notice before results  recoverable
+    ?slow=<ms>        -> delayed results                     recoverable (wait, don't sleep)
+
+  EVERY ONE of those branches lives in THIS PAGE, never in replay. Replay must
+  read the outcome off the screen; the moment it branches on the member id
+  itself, the whole error taxonomy becomes a lie.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- Pin light rendering: a browser in dark mode would otherwise invert the
+       page's implicit colours and leave the un-styled result tables unreadable
+       in a screenshot. Legacy apps of this vintage are white. -->
+  <meta name="color-scheme" content="light">
+  <title>CoreBankPro - Member Services</title>
+</head>
+<body style="margin:0" bgcolor="#ffffff">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr><td bgcolor="#003366" style="padding:10px;color:white;font-family:Arial">
+    <font size="4">CoreBankPro&trade; Member Services v4</font>
+  </td></tr>
+  <tr><td style="padding:16px;font-family:Arial;font-size:13px">
+
+    <!-- ================= MEMBER LOOKUP (the read flow) ================= -->
+    <table border="1" cellpadding="6" cellspacing="0" bgcolor="#f0f0f0">
+      <tr>
+        <!-- Properly labelled: reachable at rung 1 (role=textbox, name="Member ID") -->
+        <td><label for="mid">Member ID</label></td>
+        <td><input type="text" id="mid" aria-label="Member ID" size="14"></td>
+      </tr>
+      <tr>
+        <!-- NO <label>, NO id, NO aria-label: a bare caption cell.
+             Anonymous in the a11y tree -> rung 2 is the only way in. -->
+        <td>Branch Code</td>
+        <td><input type="text" size="14"></td>
+      </tr>
+      <tr>
+        <td colspan="2" align="right">
+          <button type="button" onclick="doSearch()">Search</button>
+        </td>
+      </tr>
+    </table>
+
+    <div id="result" style="margin-top:20px"></div>
+
+  </td></tr>
+</table>
+
+<script>
+// ---------------------------------------------------------------------------
+// Fake "backend". The if/else below is the PAGE's business logic — the thing
+// replay is forbidden from reimplementing.
+// ---------------------------------------------------------------------------
+
+var q = new URLSearchParams(location.search);
+var SLOW_MS = parseInt(q.get('slow') || '0', 10);
+var MAINTENANCE = q.get('maintenance') === '1';
+
+var result = function(){ return document.getElementById('result'); };
+// The page addresses its own fields positionally so that DRIFT (below) can
+// strip ids without breaking the application itself.
+var memberField = function(){ return document.querySelectorAll('table input[type=text]')[0]; };
+var branchField = function(){ return document.querySelectorAll('table input[type=text]')[1]; };
+
+// DRIFT SIMULATION (?drift=1) — the app renames its accessible label, as a
+// tenant or a localisation would. The visible caption in the adjacent cell is
+// untouched, which is the whole point: rung 1 (role+name) and the name-only
+// rung both stop working, while the relational rung anchored on the visible
+// text carries on. A recorded flow should survive this without being re-recorded.
+if (q.get('drift') === '1') {
+  var mid = document.getElementById('mid');
+  mid.setAttribute('aria-label', 'Mitglieds-Nr.');
+  mid.removeAttribute('id');
+  var lbl = document.querySelector('label[for=mid]');
+  if (lbl) lbl.removeAttribute('for');
+}
+
+// DRIFT MODE 2 (?drift=2) — the control is gone, not renamed. No rung can
+// find what is not there, and no fallback should pretend otherwise. This is
+// the difference between drift a ladder absorbs and drift it must report: the
+// correct behaviour here is to stop with a debuggable HardFailure.
+if (q.get('drift') === '2') {
+  var btn = document.querySelector('button');
+  if (btn) btn.parentNode.removeChild(btn);
+}
+
+function alertBox(msg){
+  result().innerHTML = '<div role="alert" style="color:#a00"><b>' + msg + '</b></div>';
+}
+
+// Deterministic per-member balance. NOT a constant: a fixed value would let a
+// bug that reads the wrong cell pass unnoticed.
+function balanceFor(id){
+  var n = 0;
+  for (var i = 0; i < id.length; i++) n = (n * 31 + id.charCodeAt(i)) % 900000;
+  var dollars = 1000 + (n % 9000);
+  var cents = n % 100;
+  return '$' + dollars.toLocaleString('en-US') + '.' + String(cents).padStart(2, '0');
+}
+
+function doSearch(){
+  var id = memberField().value.trim();
+  var branch = branchField().value.trim();
+
+  // Validation: we drove the form wrong. Not a business answer.
+  if (id === '')     { alertBox('Please enter a Member ID.'); return; }
+  if (branch === '') { alertBox('Please enter a Branch Code.'); return; }
+
+  var render = function(){
+    if (id === '99999') {                 // business outcome: no such member
+      alertBox('No such member.');
+    } else if (id === '00000') {          // business outcome: denied
+      alertBox('You do not have permission to view this member.');
+    } else {                              // happy path -> member detail panel
+      result().innerHTML =
+        '<table border="1" cellpadding="6" cellspacing="0">' +
+          '<tr><td colspan="2" bgcolor="#ddeeff">' +
+            '<b role="heading" aria-level="2">Member Detail</b></td></tr>' +
+          '<tr><td>Name</td><td>Member ' + id + '</td></tr>' +
+          '<tr><td>Branch</td><td>' + branch + '</td></tr>' +
+          '<tr><td>Savings Balance</td>' +
+              '<td><span aria-label="Savings Balance">' + balanceFor(id) + '</span></td></tr>' +
+        '</table>' +
+        '<p><button type="button" onclick="openSubAccountForm()">Open Sub-Account</button></p>';
+    }
+  };
+
+  // ESCALATION TRIGGER (?blocker=1) — a supervisor override screen the
+  // recording never saw. Deliberately NOT role="alert": the artifact's
+  // checkpoint accepts "a panel or an alert", so an alert would pass and this
+  // must not. No known_outcome describes it and no recovery clears it, which
+  // is precisely the shape of a situation automation cannot resolve on its
+  // own — and a person can, in one click, in the same browser session.
+  if (q.get('blocker') === '1' && !window.__overridden) {
+    result().innerHTML =
+      '<b role="heading" aria-level="2">Supervisor Override Required</b>' +
+      '<p>This member record is flagged. A supervisor must release it.</p>' +
+      '<p><button type="button" id="overrideBtn">Override</button></p>';
+    document.getElementById('overrideBtn').onclick = function(){
+      window.__overridden = true;
+      doSearch();
+    };
+    return;
+  }
+
+  // Recoverable #1: an interstitial that must be dismissed before results show.
+  if (MAINTENANCE) {
+    result().innerHTML =
+      '<div role="alert"><b>Scheduled maintenance tonight 22:00-23:00.</b></div>' +
+      '<p><button type="button" id="dismissBtn">Dismiss</button></p>';
+    document.getElementById('dismissBtn').onclick = render;
+    return;
+  }
+
+  // Recoverable #2: a slow response. Replay must WAIT ON THE CHECKPOINT,
+  // never sleep a guessed number of milliseconds.
+  if (SLOW_MS > 0) {
+    result().innerHTML = '<p>Working&hellip;</p>';
+    setTimeout(render, SLOW_MS);
+    return;
+  }
+
+  render();
+}
+
+// ---------------------------------------------------------------------------
+// OPEN SUB-ACCOUNT (the write flow) — thin on purpose. It exists so the safety
+// layer has a genuinely irreversible action to guard instead of a hypothetical
+// one. Reachable only from a member detail panel, so it is a real multi-step
+// flow rather than a standalone form.
+// ---------------------------------------------------------------------------
+
+function openSubAccountForm(){
+  var id = memberField().value.trim();
+  result().innerHTML =
+    '<b role="heading" aria-level="2">Open Sub-Account</b>' +
+    '<table border="1" cellpadding="6" cellspacing="0" bgcolor="#f0f0f0">' +
+      '<tr><td><label for="atype">Account Type</label></td>' +
+          '<td><select id="atype" aria-label="Account Type">' +
+              '<option>Savings</option><option>Checking</option>' +
+              '<option>Money Market</option></select></td></tr>' +
+      '<tr><td><label for="dep">Initial Deposit</label></td>' +
+          '<td><input type="text" id="dep" aria-label="Initial Deposit" size="14"></td></tr>' +
+    '</table>' +
+    '<p><button type="button" onclick="confirmSubAccount(\'' + id + '\')">Confirm</button> ' +
+       '<button type="button" onclick="doSearch()">Cancel</button></p>';
+}
+
+function confirmSubAccount(memberId){
+  var raw = document.getElementById('dep').value.trim();
+  var amount = Number(raw.replace(/[$,]/g, ''));
+
+  if (raw === '' || isNaN(amount) || amount < 0) {
+    alertBox('Please enter a valid initial deposit.');       // our bug
+    return;
+  }
+  if (amount > 10000) {
+    // Business outcome AND the natural escalation trigger for the handoff
+    // milestone: a human with a higher limit can finish this in the same session.
+    alertBox('Deposit exceeds your approval limit. Manager approval required.');
+    return;
+  }
+
+  var type = document.getElementById('atype').value;
+  var acct = 'SA-' + memberId + '-' + String(Math.floor(amount)).padStart(5, '0');
+  result().innerHTML =
+    '<b role="heading" aria-level="2">Sub-Account Opened</b>' +
+    '<div role="status">' +
+      '<table border="1" cellpadding="6" cellspacing="0">' +
+        '<tr><td>New Account Number</td>' +
+            '<td><span aria-label="New Account Number">' + acct + '</span></td></tr>' +
+        '<tr><td>Account Type</td><td>' + type + '</td></tr>' +
+      '</table>' +
+    '</div>';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+{"ts": 1789770729.405, "event": "replay_start", "capability": "lookup_member_balance"}
+{"ts": 1789770729.552, "event": "step", "step": "open_application", "rung": null, "fell_back": false, "checkpoint_ok": true, "waited_ms": 24, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789770729.62, "event": "step", "step": "type_1", "rung": 2, "fell_back": true, "checkpoint_ok": true, "waited_ms": 16, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789770729.65, "event": "step", "step": "type_2", "rung": 2, "fell_back": false, "checkpoint_ok": true, "waited_ms": 9, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789770729.702, "event": "step", "step": "click_3", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789770729.757, "event": "step", "step": "read_savings_balance", "rung": 2, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": "$2,755.55", "error": null}
+{"ts": 1789770729.758, "event": "replay_complete", "classification": "success", "result": "Success({'savings_balance': '$2,755.55'})", "elapsed_ms": 354}

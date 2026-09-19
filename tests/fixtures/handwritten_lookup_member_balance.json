@@ -1,0 +1,205 @@
+{
+  "schema_version": "1.0",
+  "capability_id": "lookup_member_balance",
+  "name": "Look up a member's savings balance",
+  "description": "Search Member Services by member ID and branch code, then read the savings balance from the member detail panel. Read-only.",
+  "product_identity": "CoreBankPro@4",
+  "target": {
+    "surface": "web",
+    "entry_url": "http://127.0.0.1:8000/members.html",
+    "allowed_origins": ["http://127.0.0.1:8000"],
+    "overrides": {}
+  },
+  "parameters": [
+    {
+      "name": "member_id",
+      "type": "string",
+      "description": "The member's identifier, as printed on their statement.",
+      "required": true,
+      "sensitive": true
+    },
+    {
+      "name": "branch_code",
+      "type": "string",
+      "description": "Three-digit branch code the lookup is scoped to.",
+      "required": true,
+      "sensitive": false,
+      "example": "001"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "savings_balance",
+      "type": "string",
+      "description": "The savings balance as displayed, including currency formatting."
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "open_member_services",
+      "action": "navigate",
+      "description": "Open the Member Services search screen.",
+      "value_ref": "target.entry_url",
+      "checkpoint": {
+        "condition": { "kind": "role_name_present", "role": "button", "name": "Search" },
+        "description": "the Member Services search form is loaded",
+        "timeout_ms": 10000
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "enter_member_id",
+      "action": "type",
+      "description": "Type the member ID into the Member ID field.",
+      "target": {
+        "rungs": [
+          { "kind": "a11y_role_name", "role": "textbox", "name": "Member ID", "exact": true },
+          { "kind": "relational", "anchor_text": "Member ID", "relation": "same_row", "target_role": "textbox", "occurrence": 1 },
+          { "kind": "structural", "role": "textbox", "index": 0 },
+          { "kind": "coordinates", "x": 169.0, "y": 75.0, "viewport_width": 1280, "viewport_height": 720 }
+        ],
+        "robustness_note": "Rung 1 holds because this field carries a real aria-label, so it survives restyling and DOM churn. If the label is renamed per tenant, rung 2 re-anchors on the visible 'Member ID' caption in the adjacent cell. Rung 3 assumes this is the first textbox on the page and breaks if a field is inserted above it. Coordinates are last resort and viewport-bound."
+      },
+      "value_ref": "params.member_id",
+      "checkpoint": {
+        "condition": {
+          "kind": "value_matches_ref",
+          "target": {
+            "rungs": [
+              { "kind": "a11y_role_name", "role": "textbox", "name": "Member ID", "exact": true }
+            ],
+            "robustness_note": "Same rung-1 identification as the step itself; the checkpoint only has to confirm the value landed."
+          },
+          "value_ref": "params.member_id"
+        },
+        "description": "the Member ID field holds the supplied member ID"
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "enter_branch_code",
+      "action": "type",
+      "description": "Type the branch code into the unlabelled Branch Code field.",
+      "target": {
+        "rungs": [
+          { "kind": "relational", "anchor_text": "Branch Code", "relation": "same_row", "target_role": "textbox", "occurrence": 1 },
+          { "kind": "structural", "role": "textbox", "index": 1 },
+          { "kind": "coordinates", "x": 169.0, "y": 110.0, "viewport_width": 1280, "viewport_height": 720 }
+        ],
+        "robustness_note": "THIS LADDER STARTS AT RUNG 2 BY NECESSITY: the field has no label element, no id and no aria-label, so it is anonymous in the accessibility tree and rung 1 does not exist for it. Rung 2 anchors on the visible 'Branch Code' caption and takes the textbox sharing its row, which survives restyling and column reordering. Rung 3 assumes it is the second textbox on the page. Coordinates last."
+      },
+      "value_ref": "params.branch_code",
+      "checkpoint": {
+        "condition": {
+          "kind": "value_matches_ref",
+          "target": {
+            "rungs": [
+              { "kind": "relational", "anchor_text": "Branch Code", "relation": "same_row", "target_role": "textbox", "occurrence": 1 },
+              { "kind": "structural", "role": "textbox", "index": 1 }
+            ],
+            "robustness_note": "Re-resolves the anonymous field the same way the step did, so the checkpoint cannot pass by reading a different field."
+          },
+          "value_ref": "params.branch_code"
+        },
+        "description": "the Branch Code field holds the supplied branch code"
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "submit_search",
+      "action": "click",
+      "description": "Submit the search.",
+      "target": {
+        "rungs": [
+          { "kind": "a11y_role_name", "role": "button", "name": "Search", "exact": true },
+          { "kind": "relational", "anchor_text": "Branch Code", "relation": "below", "target_role": "button", "occurrence": 1 },
+          { "kind": "coordinates", "x": 196.0, "y": 145.0, "viewport_width": 1280, "viewport_height": 720 }
+        ],
+        "robustness_note": "A real <button> with a stable accessible name, so rung 1 is safe. Rung 2 anchors on the search form's last caption rather than the button's own text, which covers a relabel to 'Find' or 'Go' — the one change that would break rung 1."
+      },
+      "checkpoint": {
+        "condition": {
+          "kind": "any_of",
+          "conditions": [
+            { "kind": "role_name_present", "role": "heading", "name": "Member Detail" },
+            { "kind": "text_present", "text": "", "role": "alert" }
+          ]
+        },
+        "description": "the search returned a response: either a member detail panel or an alert",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    },
+    {
+      "step_id": "read_savings_balance",
+      "action": "read",
+      "description": "Read the savings balance from the member detail panel.",
+      "target": {
+        "rungs": [
+          { "kind": "a11y_role_name", "name": "Savings Balance", "exact": true },
+          { "kind": "relational", "anchor_text": "Savings Balance", "relation": "same_row", "target_role": "cell", "occurrence": 2 },
+          { "kind": "coordinates", "x": 178.0, "y": 286.0, "viewport_width": 1280, "viewport_height": 720 }
+        ],
+        "robustness_note": "Rung 1 is name-only on purpose. The value span carries aria-label 'Savings Balance', and the accessibility tree also hands that name to the enclosing table cell, so role+name matches two elements and is ambiguous while name alone is exact. Rung 2 is the honest fallback for this legacy table: take the row whose caption cell reads 'Savings Balance' and read its second cell. Rung 2 also survives the aria-label being dropped entirely, which is the likeliest drift here."
+      },
+      "extract_to": "savings_balance",
+      "checkpoint": {
+        "condition": { "kind": "role_name_present", "role": "heading", "name": "Member Detail" },
+        "description": "the member detail panel is displayed, so the value read belongs to this member",
+        "timeout_ms": 8000
+      },
+      "risk": "safe"
+    }
+  ],
+  "known_outcomes": [
+    {
+      "name": "balance_returned",
+      "detect": { "kind": "role_name_present", "role": "heading", "name": "Member Detail" },
+      "classification": "success",
+      "message": "Member detail panel rendered; the savings balance was read."
+    },
+    {
+      "name": "member_not_found",
+      "detect": { "kind": "text_present", "text": "No such member", "role": "alert" },
+      "classification": "business_outcome",
+      "message": "No member exists with that ID. A legitimate answer to return, not a failure."
+    },
+    {
+      "name": "permission_denied",
+      "detect": { "kind": "text_present", "text": "do not have permission", "role": "alert" },
+      "classification": "business_outcome",
+      "message": "The member exists but the operating account may not view it."
+    },
+    {
+      "name": "member_id_not_submitted",
+      "detect": { "kind": "text_present", "text": "Please enter a Member ID", "role": "alert" },
+      "classification": "hard_failure",
+      "message": "The app reports an empty Member ID, so our type step did not take effect. Our bug, not the caller's answer."
+    },
+    {
+      "name": "branch_code_not_submitted",
+      "detect": { "kind": "text_present", "text": "Please enter a Branch Code", "role": "alert" },
+      "classification": "hard_failure",
+      "message": "The app reports an empty Branch Code, so the rung-2 resolution typed into the wrong field or none at all."
+    }
+  ],
+  "recoveries": [
+    {
+      "name": "maintenance_notice",
+      "detect": { "kind": "text_present", "text": "Scheduled maintenance", "role": "alert" },
+      "strategy": "dismiss",
+      "dismiss_target": {
+        "rungs": [
+          { "kind": "a11y_role_name", "role": "button", "name": "Dismiss", "exact": true }
+        ],
+        "robustness_note": "A real button with a stable name; an interstitial this simple needs no fallback rung."
+      },
+      "max_attempts": 2
+    }
+  ],
+  "status": "approved",
+  "provenance": {
+    "approved_by": "hand-written for the M1 schema checkpoint, corrected against the real app in M0",
+    "approved_at": "2026-09-18"
+  }
+}

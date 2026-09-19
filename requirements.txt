@@ -1,0 +1,4 @@
+anthropic>=1
+playwright==1.62.0
+pydantic>=2
+pytest>=8

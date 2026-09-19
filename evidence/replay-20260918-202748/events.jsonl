@@ -1,0 +1,10 @@
+{"ts": 1789777669.489, "event": "replay_start", "capability": "open_sub_account"}
+{"ts": 1789777669.615, "event": "step", "step": "open_application", "rung": null, "fell_back": false, "checkpoint_ok": true, "waited_ms": 24, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777669.672, "event": "step", "step": "type_1", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 7, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777669.724, "event": "step", "step": "type_2", "rung": 2, "fell_back": false, "checkpoint_ok": true, "waited_ms": 9, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777669.809, "event": "step", "step": "click_3", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777669.896, "event": "step", "step": "click_4", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777669.968, "event": "step", "step": "type_5", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 3, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777670.027, "event": "step", "step": "click_6", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777670.092, "event": "step", "step": "read_new_account_number", "rung": 2, "fell_back": false, "checkpoint_ok": true, "waited_ms": 0, "recoveries": [], "extracted": "SA-***-00500", "error": null}
+{"ts": 1789777670.093, "event": "replay_complete", "classification": "success", "result": "Success({'new_account_number': 'SA-***-00500'})", "elapsed_ms": 604}

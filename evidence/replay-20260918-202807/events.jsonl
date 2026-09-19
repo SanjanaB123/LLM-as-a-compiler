@@ -1,0 +1,9 @@
+{"ts": 1789777689.03, "event": "replay_start", "capability": "open_sub_account"}
+{"ts": 1789777689.172, "event": "step", "step": "open_application", "rung": null, "fell_back": false, "checkpoint_ok": true, "waited_ms": 29, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777689.228, "event": "step", "step": "type_1", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 5, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777689.279, "event": "step", "step": "type_2", "rung": 2, "fell_back": false, "checkpoint_ok": true, "waited_ms": 9, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777689.339, "event": "step", "step": "click_3", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777689.43, "event": "step", "step": "click_4", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777689.5, "event": "step", "step": "type_5", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 3, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777689.523, "event": "step", "step": "click_6", "rung": 1, "fell_back": false, "checkpoint_ok": true, "waited_ms": 1, "recoveries": [], "extracted": null, "error": null}
+{"ts": 1789777689.524, "event": "replay_complete", "classification": "business_outcome", "result": "BusinessOutcome(approval_limit_exceeded)", "elapsed_ms": 494}
