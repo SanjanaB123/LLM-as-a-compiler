@@ -187,6 +187,7 @@ class ScriptedOperator:
 
     session_cdp_url: str
     clicks: list[str] = field(default_factory=list)
+    fills: list[tuple[str, str]] = field(default_factory=list)
     name: str = "scripted-operator"
     seen: list[str] = field(default_factory=list)
 
@@ -199,9 +200,18 @@ class ScriptedOperator:
         human._owns_session = False  # a controller, not the owner of the process
         human.reattach()
         try:
+            # Typing before clicking: a re-authentication needs the credentials
+            # entered before the button does anything. This is the operator's
+            # own session and their own credentials — the automation never
+            # sees them, which is the whole reason control was transferred.
+            for label, value in self.fills:
+                human.page.get_by_label(label, exact=True).fill(value)
             for label in self.clicks:
                 human.page.get_by_role("button", name=label).click()
-            return OperatorResponse(resumed=True, notes=f"clicked {self.clicks}")
+            did = [f"filled {name}" for name, _ in self.fills] + [
+                f"clicked {label}" for label in self.clicks
+            ]
+            return OperatorResponse(resumed=True, notes="; ".join(did) or "no action")
         finally:
             human.detach()
 

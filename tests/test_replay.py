@@ -343,3 +343,79 @@ def test_transcript_records_the_rung_and_the_wait(driver, artifact, log, app):
     assert "Model in the loop" in transcript and "none" in transcript
     assert "Fallback trail" in transcript
     assert "Checkpoint" in transcript
+
+
+# --------------------------------------------------------------------------- #
+# Session expiry — named, therefore fast.
+# --------------------------------------------------------------------------- #
+
+
+def test_an_expired_session_is_a_named_failure_not_an_unexplained_one(
+    driver, artifact, log, app
+):
+    """Both are hard failures, but only one is diagnosable. Because the outcome
+    is declared, the report explains itself instead of saying "the checkpoint
+    did not hold"."""
+    report = engine(driver, artifact, log, app, query="?session_expires=1").run(
+        member_id="12345", branch_code="001"
+    )
+
+    assert isinstance(report, HardFailure)
+    assert "session_expired" in report.outcomes_seen
+    assert "signed us out" in report.observed
+    assert report.needs_a_human
+
+
+def test_naming_a_failure_makes_it_fast_to_detect(driver, artifact, log, app):
+    """The measured property from REPORT §3: an anticipated failure satisfies
+    the "did the app respond" checkpoint immediately and is classified by the
+    outcomes, where an unanticipated one has to wait out the full timeout.
+
+    Worth a test rather than a note, because the whole argument for authoring
+    known_outcomes at review time rests on it.
+    """
+    import time
+
+    started = time.time()
+    engine(driver, artifact, log, app, query="?session_expires=1").run(
+        member_id="12345", branch_code="001"
+    )
+    named_ms = (time.time() - started) * 1000
+
+    started = time.time()
+    engine(driver, artifact, log, app, query="?blocker=1").run(
+        member_id="12345", branch_code="001"
+    )
+    unnamed_ms = (time.time() - started) * 1000
+
+    assert named_ms < 2000, f"a named failure took {named_ms:.0f}ms"
+    assert unnamed_ms > 5000, f"an unnamed failure took only {unnamed_ms:.0f}ms"
+    assert unnamed_ms > named_ms * 4
+
+
+def test_a_failure_report_preserves_what_was_measured(driver, artifact, log, app):
+    """Found by reading a transcript: every hard failure used to report
+    "checkpoint FAILED after 0 ms" — the defaults of a freshly built record —
+    which erased the difference between a checkpoint that timed out and one
+    that passed and was then classified by a named outcome. Those differ by
+    eight seconds and by how much you know about what went wrong.
+    """
+    named = engine(driver, artifact, log, app, query="?session_expires=1").run(
+        member_id="12345", branch_code="001"
+    )
+    unnamed = engine(driver, artifact, log, app, query="?blocker=1").run(
+        member_id="12345", branch_code="001"
+    )
+
+    named_step = next(s for s in named.steps if s.error)
+    unnamed_step = next(s for s in unnamed.steps if s.error)
+
+    # The named one: the app responded, the checkpoint held, an outcome
+    # explained it. The rung that resolved is still on the record.
+    assert named_step.checkpoint_ok
+    assert named_step.waited_ms < 1000
+    assert named_step.rung == 1
+
+    # The unnamed one: nothing recognised the screen, so the wait ran out.
+    assert not unnamed_step.checkpoint_ok
+    assert unnamed_step.waited_ms > 5000

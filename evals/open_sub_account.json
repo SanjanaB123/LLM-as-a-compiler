@@ -1,0 +1,85 @@
+{
+  "capability_id": "open_sub_account",
+  "scenarios": [
+    {
+      "name": "blocked_without_confirmation",
+      "description": "The irreversible Confirm step must refuse to run unauthorised. The default is refusal: an irreversible action should need someone to say yes.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001",
+        "initial_deposit": "500"
+      },
+      "expect": "hard_failure"
+    },
+    {
+      "name": "opens_when_authorised",
+      "description": "The same flow with explicit confirmation.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001",
+        "initial_deposit": "500"
+      },
+      "confirm": true,
+      "expect": "success"
+    },
+    {
+      "name": "over_approval_limit",
+      "description": "The bank declining a deposit above the operator's limit. A real answer, not a crash \u2014 and the natural escalation trigger.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001",
+        "initial_deposit": "25000"
+      },
+      "confirm": true,
+      "expect": "business_outcome",
+      "expect_outcome": "approval_limit_exceeded"
+    },
+    {
+      "name": "member_not_found",
+      "description": "Nothing to open a sub-account against.",
+      "params": {
+        "member_id": "99999",
+        "branch_code": "001",
+        "initial_deposit": "500"
+      },
+      "confirm": true,
+      "expect": "business_outcome",
+      "expect_outcome": "member_not_found"
+    },
+    {
+      "name": "permission_denied",
+      "description": "The operating account may not view this member.",
+      "params": {
+        "member_id": "00000",
+        "branch_code": "001",
+        "initial_deposit": "500"
+      },
+      "confirm": true,
+      "expect": "business_outcome",
+      "expect_outcome": "permission_denied"
+    },
+    {
+      "name": "unparseable_deposit",
+      "description": "The app rejects the deposit. Our type step sent something wrong, so this is our bug and not the bank's answer.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001",
+        "initial_deposit": "not-a-number"
+      },
+      "confirm": true,
+      "expect": "hard_failure"
+    },
+    {
+      "name": "session_expired_mid_flow",
+      "description": "The app signs us out mid-flow. Named in known_outcomes, so it is detected in milliseconds rather than by waiting out the checkpoint timeout \u2014 and classified hard_failure because re-authenticating needs credentials the automation must never handle.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001",
+        "initial_deposit": "500"
+      },
+      "entry_query": "?session_expires=1",
+      "expect": "hard_failure",
+      "confirm": true
+    }
+  ]
+}

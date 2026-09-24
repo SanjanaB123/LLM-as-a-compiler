@@ -51,7 +51,7 @@ separate is what lets a business outcome be clean rather than a failed step.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from core.driver import Driver, TargetNotFound
@@ -117,6 +117,11 @@ class ReplayReport:
     steps: tuple[StepOutcome, ...] = ()
     evidence_dir: str = ""
     elapsed_ms: int = 0
+    # Every known_outcome whose detect condition matched during this run,
+    # including non-terminal ones. Recorded because "this outcome is declared"
+    # and "this outcome can actually be reached" are different claims, and
+    # only the second one is worth anything.
+    outcomes_seen: tuple[str, ...] = ()
 
     @property
     def classification(self) -> Classification:
@@ -242,6 +247,7 @@ class ReplayEngine:
         self.operator = operator
         self.max_interventions = max_interventions
         self.ledger = ControlLedger()
+        self._outcomes_seen: list[str] = []
 
     @property
     def allowlist_description(self) -> str:
@@ -434,11 +440,15 @@ class ReplayEngine:
             # described — "our type step did not land", not "something is off".
             return self._hard(
                 step, step.checkpoint.description,
-                matched.message or matched.name, recoveries, name=matched.name,
+                matched.message or matched.name, recoveries,
+                name=matched.name, measured=outcome,
             )
 
         if not check.ok:
-            return self._hard(step, step.checkpoint.description, check.observed, recoveries)
+            return self._hard(
+                step, step.checkpoint.description, check.observed, recoveries,
+                measured=outcome,
+            )
 
         return outcome, None
 
@@ -509,13 +519,19 @@ class ReplayEngine:
 
         Never from the input. The application decides what 99999 means; our job
         is to notice what it said, not to reimplement its rules.
+
+        Every match is recorded, including the success-classified ones that do
+        not stop the run. Only the first terminal match is returned.
         """
+        terminal = None
         for outcome in self.artifact.known_outcomes:
-            if outcome.classification is Classification.SUCCESS:
-                continue  # not terminal; the happy path just carries on
-            if self.driver.check(outcome.detect, 0).ok:
-                return outcome
-        return None
+            if not self.driver.check(outcome.detect, 0).ok:
+                continue
+            if outcome.name not in self._outcomes_seen:
+                self._outcomes_seen.append(outcome.name)
+            if terminal is None and outcome.classification is not Classification.SUCCESS:
+                terminal = outcome
+        return terminal
 
     # -- parameters -------------------------------------------------------- #
 
@@ -579,7 +595,18 @@ class ReplayEngine:
         observed: str,
         recoveries: list[str],
         name: str | None = None,
+        measured: StepOutcome | None = None,
     ) -> tuple[StepOutcome, HardFailure]:
+        """Report a hard failure, preserving what was actually measured.
+
+        `measured` carries the rung that resolved and the real checkpoint
+        result. Without it every failure reported "checkpoint FAILED after
+        0 ms" — the defaults of a freshly built record — which erased the one
+        distinction that makes a failure diagnosable: whether the checkpoint
+        timed out (nothing recognised the screen) or passed and was then
+        classified by a named outcome. Those differ by eight seconds and by
+        how much you know about what went wrong.
+        """
         shot = None
         try:
             shot = str(
@@ -595,13 +622,18 @@ class ReplayEngine:
             observed=observed,
             screenshot=shot,
         )
-        return (
-            StepOutcome(
+        outcome = (
+            replace(measured, error=observed)
+            if measured is not None
+            else StepOutcome(
                 step_id=step.step_id,
                 action=step.action.value,
                 recoveries=tuple(recoveries),
                 error=observed,
-            ),
+            )
+        )
+        return (
+            outcome,
             HardFailure(
                 capability_id=self.artifact.capability_id,
                 step_id=step.step_id,
@@ -621,6 +653,7 @@ class ReplayEngine:
                 "steps": tuple(steps),
                 "evidence_dir": str(self.log.dir),
                 "elapsed_ms": elapsed,
+                "outcomes_seen": tuple(self._outcomes_seen),
             }
         )
         self.log.heading("Result", level=2)

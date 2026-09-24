@@ -8,7 +8,7 @@ production, wrapped in safety, evidence and human handoff.
 > **LLM = compiler** (run once, expensive). **Artifact = compiled program.**
 > **Replay = runtime** (run often, cheap, no model in the loop).
 
-Everything below is implemented and exercised by 115 tests. The evidence in
+Everything below is implemented and exercised by 136 tests. The evidence in
 [`/evidence`](evidence/README.md) is from real runs, not illustrations.
 
 ---
@@ -263,6 +263,110 @@ expected: button 'Search' is on screen
 observed: url=...?drift=2 | controls present: textbox 'Member ID', textbox
 ```
 
+### The runtime conditions, one by one
+
+The brief names the exceptional states that matter in this environment. Each is
+handled, and the classification differs on purpose:
+
+| Condition | How it surfaces here | Classified |
+|---|---|---|
+| validation error | empty Member ID / Branch Code, unparseable deposit | **hard failure** — the app is telling us *our* input never landed |
+| "record not found" | member `99999` | business outcome |
+| permission denial | member `00000`, and the deposit approval limit | business outcome |
+| unexpected dialog | `?maintenance=1` (declared) / `?blocker=1` (not) | recoverable / hard failure → escalation |
+| **session / timeout expiry** | `?session_expires=1` | **hard failure → escalation** |
+| transient slowness | `?slow=2000` | waited out, then success |
+| outright app error | `?drift=2`, a control gone | hard failure |
+
+Two rows are worth dwelling on.
+
+**Validation errors are ours, not the bank's.** "Please enter a Member ID"
+arrives through the identical `role="alert"` mechanism as "No such member", and
+it would be easy to bucket them together. But one is the application answering
+a question and the other means our type step silently did nothing. Calling the
+second a business outcome would hide a defect behind a legitimate-looking
+result.
+
+**Session expiry escalates rather than recovering.** It is declared in
+`known_outcomes`, so it is named and detected in ~400 ms rather than by waiting
+out the checkpoint. It is classified `hard_failure` — not `recoverable` — for a
+specific reason: recovering means re-authenticating, re-authenticating means
+credentials, and the automation must never handle those. A one-click "resume"
+would have been recoverable; a sign-in form is not. So the target app's expiry
+screen demands an Operator ID and a password, and the only correct response is
+to hand the live session to a person who has them. The operator's credentials
+never enter the automation's context, and the transcript records
+`filled Operator ID; filled Password; clicked Sign In` without either value.
+
+### What waiting costs
+
+Measured medians over 20 runs each, and the split is not where you would guess.
+It is **not** failure that is slow — it is *unanticipated* failure:
+
+| Scenario | Result | Median |
+|---|---|---|
+| `member_not_found` | business outcome | 317 ms |
+| `our_typing_did_not_land` | hard failure | **367 ms** |
+| `branch_code_did_not_land` | hard failure | **367 ms** |
+| `blocked_without_confirmation` | hard failure | **470 ms** |
+| `unparseable_deposit` | hard failure | **533 ms** |
+| `?slow=2000` (a real 2s delay) | success | 2,493 ms |
+| `drift_too_large_to_absorb` | hard failure | **8,216 ms** |
+| `unknown_blocker_stops_the_run` | hard failure | **8,442 ms** |
+
+Four of the six hard failures return in under 600 ms. Only two cost eight
+seconds, and they are the two where **the checkpoint can never be satisfied**:
+a control was deleted, or the application showed a screen nothing in the
+artifact describes. There the timeout has to expire, because a slow load and a
+genuine failure are indistinguishable until the clock runs out — the timeout
+*is* what tells them apart, and giving up early would trade a bounded latency
+for flaky false failures.
+
+Everything else is fast because the checkpoint after a submit asserts only that
+the application *responded*. An error alert satisfies it immediately, and
+classification then falls to the outcomes, which evaluate instantly. That
+widening was introduced so a business outcome would not be misreported as a
+step failure; the speed is a second dividend of the same decision. **Naming a
+failure in `known_outcomes` makes it roughly twenty times faster to detect**,
+which is a concrete argument for the review step beyond correctness.
+
+So the honest statement of the cost is narrow: a capability pays its full
+checkpoint budget only when it meets a state nobody anticipated. Two
+consequences worth stating rather than discovering later. Operationally, p99 is
+set by the timeout rather than by the application, and capacity planning should
+assume an unrecognised-state failure costs the full budget. For the eval
+harness, those two scenarios dominate its runtime — at 20 runs they are around
+five of its eight minutes.
+
+The timeout is per-step and lives in the artifact, so it is tunable per
+capability rather than globally. It was not tuned here: 8s is a defensible
+default for a legacy UI, and picking a smaller number to make the demo look
+brisk would be optimising the wrong thing.
+
+### Measured, not asserted
+
+`python cli.py eval <capability> --runs 20` replays a declared scenario suite N
+times and scores it. Both capabilities are **10/10 and 6/6 scenarios consistent
+at 20 runs, with every declared outcome reached**.
+
+It measures two things. Consistency is the obvious one. The other is
+**outcome reachability**, and it closes a gap nothing else in the system can:
+the schema validates that a `known_outcome` is well-formed, but cannot know
+whether `text_present("No such membr")` matches anything the application
+renders. Those conditions are hand-authored by a human at review time — exactly
+when typos happen — and the failure mode is silent, because the outcome simply
+never matches and a clean business outcome degrades into a `HardFailure`. That
+is the brief's central mistake re-entering through the back door after the
+whole taxonomy was built to prevent it.
+
+The harness found exactly that on its first run: `branch_code_not_submitted`,
+authored during the M3 review, reported as **declared but never reached**. A
+suite that leaves any outcome unproven fails even when every scenario passes.
+
+This tightens the lifecycle: `approved` now means a human authored the failure
+branches *and* the machine confirmed they fire. It does not mean the branches
+are the right ones — a human still decides that.
+
 ### Drift
 
 `?drift=1` renames the app's accessible label while leaving the visible caption
@@ -437,6 +541,18 @@ Which steps are irreversible is a **human** judgement, made at review. It has
 to be: discovery watched both "Open Sub-Account" and "Confirm" succeed, and
 nothing observable distinguishes a commitment from a navigation.
 
+### Credentials are out of scope, structurally
+
+The system has no way to enter a credential and no place to keep one. There is
+no step in either artifact targeting a credential field, no parameter declared
+for one, and `value_ref` resolution has nowhere to read one from. When the
+target app demands re-authentication the run escalates, and the person who
+takes the session over types their own credentials into their own browser — an
+exchange the automation never observes.
+
+This is the sharpest case of a general rule: the safest way to handle a class
+of secret is to build a system that cannot represent it.
+
 ### Redaction is structural
 
 - The artifact holds `value_ref`, so a sensitive value has nowhere to be
@@ -496,7 +612,7 @@ obviously safer than stopping.
 **Discovery emits one capability per run.** No attempt to generalise a flow
 across several goals.
 
-**Tests are typed where it counts, not exhaustive.** 115 tests concentrated on
+**Tests are typed where it counts, not exhaustive.** 136 tests concentrated on
 the schema's guarantees, ladder fallback, and taxonomy classification. Most
 negative tests deliberately break a rule and assert the system rejects it,
 because those are the guarantees that would otherwise quietly rot.
@@ -505,6 +621,8 @@ because those are the guarantees that would otherwise quietly rot.
 
 In order: a `select` verb and a richer action vocabulary; overlay resolution so
 the multi-tenant design is exercised rather than described; a real operator
-console; and an eval harness running discovery repeatedly to measure how often
-it produces an equivalent artifact — the one number that would say whether the
-compiler half is dependable rather than merely working.
+console; and extending the eval harness to the *discovery* half — running the
+same goal repeatedly to measure how often the model produces an equivalent
+artifact. The harness currently measures the runtime; that number would say
+whether the compiler is dependable rather than merely working, and it is the
+one measurement still missing.

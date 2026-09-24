@@ -156,6 +156,40 @@ function doSearch(){
     }
   };
 
+  // SESSION EXPIRY (?session_expires=1) — the condition the brief names twice
+  // and the most ordinary one in a back-office tool: the session dies mid-flow.
+  //
+  // It renders a role="alert" as well as the sign-in form, which is what a real
+  // app does and what makes this DETECTABLE rather than merely broken: the
+  // "did the app respond" checkpoint is satisfied immediately, a declared
+  // outcome names it, and the run stops in ~400ms instead of waiting out the
+  // full checkpoint timeout.
+  //
+  // It demands CREDENTIALS on purpose. A one-click "resume" would be a
+  // recovery the automation could perform itself; re-authentication is not,
+  // because the automation must never handle credentials. That is precisely
+  // why this escalates to a person rather than self-healing.
+  if (q.get('session_expires') === '1' && !window.__signedIn) {
+    result().innerHTML =
+      '<div role="alert" style="color:#a00"><b>Your session has timed out.</b></div>' +
+      '<b role="heading" aria-level="2">Sign In</b>' +
+      '<table border="1" cellpadding="6" cellspacing="0" bgcolor="#f0f0f0">' +
+        '<tr><td><label for="usr">Operator ID</label></td>' +
+            '<td><input type="text" id="usr" aria-label="Operator ID" size="14"></td></tr>' +
+        '<tr><td><label for="pwd">Password</label></td>' +
+            '<td><input type="password" id="pwd" aria-label="Password" size="14"></td></tr>' +
+      '</table>' +
+      '<p><button type="button" id="signInBtn">Sign In</button></p>';
+    document.getElementById('signInBtn').onclick = function(){
+      var u = document.getElementById('usr').value.trim();
+      var p = document.getElementById('pwd').value.trim();
+      if (!u || !p) { alertBox('Operator ID and Password are required.'); return; }
+      window.__signedIn = true;
+      doSearch();
+    };
+    return;
+  }
+
   // ESCALATION TRIGGER (?blocker=1) — a supervisor override screen the
   // recording never saw. Deliberately NOT role="alert": the artifact's
   // checkpoint accepts "a panel or an alert", so an alert would pass and this

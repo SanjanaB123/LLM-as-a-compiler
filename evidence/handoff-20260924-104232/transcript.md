@@ -1,4 +1,4 @@
-# Replay transcript — 20260918-204523
+# Replay transcript — 20260924-104232
 - **Capability**: lookup_member_balance
 - **Status**: approved
 - **Product**: CoreBankPro@4
@@ -8,7 +8,7 @@
 
 ## open_application — navigate
 
-- **Checkpoint**: passed after 1 ms
+- **Checkpoint**: passed after 3 ms
 
 ## type_1 — type
 
@@ -22,16 +22,17 @@
 
 ## click_3 — click
 
-- **Checkpoint**: FAILED after 0 ms
+- **Resolved at**: rung 1
+- **Checkpoint**: FAILED after 8039 ms
 - **ERROR**: url=http://127.0.0.1:8000/members.html?blocker=1 | heading=['Supervisor Override Required'] | controls present: button 'Search', button 'Override', textbox 'Member ID', textbox
 
 ## Human intervention — click_3
 
 - **Why**: url=http://127.0.0.1:8000/members.html?blocker=1 | heading=['Supervisor Override Required'] | controls present: button 'Search', button 'Override', textbox 'Member ID', textbox
 - **Expected**: the search returned a response: either a member detail panel or an alert
-- **Session**: http://127.0.0.1:62337
+- **Session**: http://127.0.0.1:62582
 - **Control**: automation -> human (hard failure at click_3) ; human -> automation (operator handed back)
-- **Operator said**: clicked ['Override']
+- **Operator said**: clicked Override
 - **What changed**: appeared: button Open Sub-Account; appeared: cell Branch; appeared: cell Member ***; appeared: cell Member Detail; appeared: cell Member ID *** Branch Code 001 Search Member Detail Name Member *** Branch 001 Savings Balance Savings Balance Open Sub-Account; appeared: cell Name; appeared: cell Savings Balance; appeared: cell Savings Balance; appeared: heading Member Detail; gone: button Override; gone: cell Member ID *** Branch Code 001 Search Supervisor Override Required This member record is flagged. A supervisor must release it. Override; gone: heading Supervisor Override Required
 - **Resumed**: True
 
@@ -44,5 +45,5 @@
 ## Result
 
 - **Classification**: success
-- **Elapsed**: 8725 ms
+- **Elapsed**: 8815 ms
 - **Outputs**: {'savings_balance': '$2,755.55'}

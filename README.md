@@ -32,7 +32,7 @@ the design, so it is worth checking:
 python -m pytest tests -q
 ```
 
-115 tests, no key, no network beyond a local server. They skip cleanly if
+136 tests, no key, no network beyond a local server. They skip cleanly if
 Chromium is not installed.
 
 ---
@@ -135,8 +135,10 @@ ever seen. Replay prints an intervention brief and a CDP URL, you attach a
 browser and click Override, press Enter — and the run re-observes, sees the
 step is done, and finishes with the balance.
 
-See [`evidence/handoff-20260918-204523`](evidence/handoff-20260918-204523/transcript.md)
-for a complete recorded example.
+Two recorded examples: [an unrecognised screen](evidence/handoff-20260924-104232/transcript.md),
+and [an expired session](evidence/handoff-session-expiry-20260924-104122/transcript.md) where
+re-authentication needs credentials the automation must never handle — so it
+cannot self-heal, and a person signs in instead.
 
 ---
 
@@ -166,8 +168,63 @@ Behaviour you can trigger:
 | `?maintenance=1` | interstitial before results | recoverable |
 | `?slow=2000` | delayed response | waited for, not slept through |
 | `?blocker=1` | override screen nothing knows about | escalation |
+| `?session_expires=1` | signed out mid-flow, sign-in required | **named** hard failure → escalation |
 
 Every one of those branches lives in the page, never in replay.
+
+---
+
+## Measuring it, instead of claiming it
+
+The table above is a set of claims. This runs them:
+
+```bash
+python cli.py eval lookup_member_balance --runs 20
+```
+
+```
+scenario                           expected           result         median
+member_found                       success            PASS 20/20     418ms
+member_not_found                   business_outcome   PASS 20/20     317ms
+our_typing_did_not_land            hard_failure       PASS 20/20     367ms
+drift_absorbed_by_rung_two         success            PASS 20/20     434ms
+drift_too_large_to_absorb          hard_failure       PASS 20/20    8203ms
+interstitial_recovered             success            PASS 20/20     450ms
+slow_response_waited_for           success            PASS 20/20    2525ms
+unknown_blocker_stops_the_run      hard_failure       PASS 20/20    8483ms
+...
+11/11 scenarios consistent at 20 runs; 6/6 outcomes reached
+```
+
+Scenarios live in `evals/<capability>.json`. Two things are measured:
+
+**Consistency** — each scenario lands in its bucket N/N, or it doesn't. The
+drift scenario additionally asserts *which rung* resolved, because a
+bucket-only check would pass even if rung 1 had quietly started working again
+and the fallback had silently stopped being tested.
+
+**Outcome reachability** — every branch the artifact declares must actually
+fire. The schema can tell that a `known_outcome` is well-formed; it cannot tell
+whether `text_present("No such membr")` matches anything real. Those conditions
+are hand-authored by a human at review, which is exactly when typos happen, and
+the failure is silent: a business outcome quietly degrades into a hard failure
+in production.
+
+On its first run the harness reported `branch_code_not_submitted` as **declared
+but never reached** — an outcome authored during review and never once proven
+to fire. A suite that leaves any outcome unreached fails, even if every
+scenario passed, because an outcome nothing can trigger is not a safety net.
+
+Note the ~8s medians on two rows. That is the checkpoint timeout expiring, and
+it is not failure in general that is slow — `our_typing_did_not_land` is a hard
+failure too and returns in 367ms. The eight seconds is paid only where the
+checkpoint can never be satisfied: a control was deleted, or the screen is one
+nothing in the artifact describes. A slow load and a genuine failure are
+indistinguishable until the clock runs out, so the wait is what tells them
+apart. Anticipated failures are fast because an error alert satisfies the
+"the app responded" checkpoint immediately and the outcomes classify it — so
+naming a failure in `known_outcomes` makes it ~20x faster to detect, as well as
+correctly classified. See REPORT §3 for the measured table.
 
 ---
 
@@ -184,11 +241,13 @@ core/
   safety.py     allowlist: origins, routes, action types
   handoff.py    ownership ledger, intervention request, CDP transfer
   logging.py    structured, redacting evidence log
+  evals.py      scenario harness: consistency + outcome reachability
 artifacts/  approved capabilities (+ artifact.schema.json at the root)
+evals/      scenario suites, one per capability
 evidence/   real transcripts from every scenario
-tests/      115 tests
+tests/      136 tests
 scripts/    the original spike that de-risked a11y perception and CDP handoff
-cli.py      discover / review / replay
+cli.py      discover / review / replay / eval
 ```
 
 ## Exit codes

@@ -1,0 +1,116 @@
+{
+  "capability_id": "lookup_member_balance",
+  "scenarios": [
+    {
+      "name": "member_found",
+      "description": "The happy path: an existing member, balance read.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001"
+      },
+      "expect": "success"
+    },
+    {
+      "name": "member_not_found",
+      "description": "The bank answering a question. Must be returned cleanly, not raised.",
+      "params": {
+        "member_id": "99999",
+        "branch_code": "001"
+      },
+      "expect": "business_outcome",
+      "expect_outcome": "member_not_found"
+    },
+    {
+      "name": "permission_denied",
+      "description": "A second business outcome through the same generic detection.",
+      "params": {
+        "member_id": "00000",
+        "branch_code": "001"
+      },
+      "expect": "business_outcome",
+      "expect_outcome": "permission_denied"
+    },
+    {
+      "name": "our_typing_did_not_land",
+      "description": "The app reports an empty Member ID. Same alert mechanism as a business outcome, opposite classification: this one is our bug.",
+      "params": {
+        "member_id": "",
+        "branch_code": "001"
+      },
+      "expect": "hard_failure"
+    },
+    {
+      "name": "drift_absorbed_by_rung_two",
+      "description": "The accessible label is renamed. The run must still succeed AND must do so via the relational rung \u2014 asserting only the bucket would pass even if rung 1 had quietly started working again.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001"
+      },
+      "entry_query": "?drift=1",
+      "expect": "success",
+      "expect_rung": {
+        "step_id": "type_1",
+        "rung": 2
+      }
+    },
+    {
+      "name": "drift_too_large_to_absorb",
+      "description": "A control is removed outright. No rung can find what is not there, and pretending otherwise would be worse than failing.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001"
+      },
+      "entry_query": "?drift=2",
+      "expect": "hard_failure"
+    },
+    {
+      "name": "interstitial_recovered",
+      "description": "A known interstitial is dismissed in-loop and the run continues, so Recoverable never reaches the caller.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001"
+      },
+      "entry_query": "?maintenance=1",
+      "expect": "success"
+    },
+    {
+      "name": "slow_response_waited_for",
+      "description": "A 2s delay. Passing here means the checkpoint was waited on rather than slept through.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001"
+      },
+      "entry_query": "?slow=2000",
+      "expect": "success"
+    },
+    {
+      "name": "unknown_blocker_stops_the_run",
+      "description": "A screen no recording ever saw. With no operator configured this must stop rather than guess.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001"
+      },
+      "entry_query": "?blocker=1",
+      "expect": "hard_failure"
+    },
+    {
+      "name": "branch_code_did_not_land",
+      "description": "The mirror of our_typing_did_not_land, for the anonymous field. Added because the eval harness reported branch_code_not_submitted as declared but never reached \u2014 the outcome existed only on paper.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": ""
+      },
+      "expect": "hard_failure"
+    },
+    {
+      "name": "session_expired_mid_flow",
+      "description": "The app signs us out mid-flow. Named in known_outcomes, so it is detected in milliseconds rather than by waiting out the checkpoint timeout \u2014 and classified hard_failure because re-authenticating needs credentials the automation must never handle.",
+      "params": {
+        "member_id": "12345",
+        "branch_code": "001"
+      },
+      "entry_query": "?session_expires=1",
+      "expect": "hard_failure"
+    }
+  ]
+}

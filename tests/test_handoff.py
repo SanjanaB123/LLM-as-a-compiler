@@ -328,3 +328,83 @@ def test_a_policy_refusal_never_reaches_a_human(stuck_setup):
     assert isinstance(report, Refused)
     assert not report.needs_a_human
     assert operator.seen == [], "a refusal was escalated to a human"
+
+
+# --------------------------------------------------------------------------- #
+# Session expiry — the condition the brief names twice, and the one that
+# escalates for a reason other than "an unknown screen".
+# --------------------------------------------------------------------------- #
+
+
+@browser_required
+def test_an_expired_session_escalates_rather_than_self_healing(stuck_setup):
+    """A one-click "resume" would be a recovery the automation could perform
+    itself. Re-authentication is not, because the automation must never handle
+    credentials — which is exactly why control has to transfer to a person."""
+    app, driver, session, log = stuck_setup
+    operator = ScriptedOperator(
+        session_cdp_url=session.cdp_url,
+        fills=[("Operator ID", "op-7741"), ("Password", "correct-horse-battery")],
+        clicks=["Sign In"],
+    )
+
+    engine = ReplayEngine(
+        driver=driver,
+        artifact=load_artifact(ARTIFACT),
+        log=log,
+        entry_url=app.entry_url + "?session_expires=1",
+        operator=operator,
+    )
+    report = engine.run(member_id="12345", branch_code="001")
+
+    assert isinstance(report, Success)
+    assert report.outputs["savings_balance"].startswith("$")
+    assert operator.seen == ["click_3"]
+    assert engine.ledger.owner is Ownership.AUTOMATION
+
+
+@browser_required
+def test_the_operators_credentials_never_reach_the_evidence(stuck_setup):
+    """The handoff records WHAT the person did, not what they typed. A
+    transcript that captured a password would be a worse leak than the one the
+    escalation existed to avoid."""
+    app, driver, session, log = stuck_setup
+    secret = "correct-horse-battery"
+    ReplayEngine(
+        driver=driver,
+        artifact=load_artifact(ARTIFACT),
+        log=log,
+        entry_url=app.entry_url + "?session_expires=1",
+        operator=ScriptedOperator(
+            session_cdp_url=session.cdp_url,
+            fills=[("Operator ID", "op-7741"), ("Password", secret)],
+            clicks=["Sign In"],
+        ),
+    ).run(member_id="12345", branch_code="001")
+
+    transcript = log.transcript_path.read_text()
+    events = log.events_path.read_text()
+
+    assert secret not in transcript and secret not in events
+    assert "op-7741" not in transcript and "op-7741" not in events
+    # What they did is still recorded.
+    assert "filled Password" in transcript
+    assert "Sign In" in transcript
+
+
+@browser_required
+def test_the_capability_has_no_step_that_could_type_a_credential(stuck_setup):
+    """Structural, not behavioural: there is no step in either artifact
+    targeting a credential field, so the automation could not enter one even
+    if the flow reached that screen."""
+    for name in ("lookup_member_balance", "open_sub_account"):
+        artifact = load_artifact(ARTIFACT.parent / f"{name}.json")
+        for step in artifact.steps:
+            if step.target is None:
+                continue
+            described = step.target.robustness_note.lower()
+            for rung in step.target.rungs:
+                described += " " + str(getattr(rung, "name", "") or "")
+                described += " " + str(getattr(rung, "anchor_text", "") or "")
+            assert "password" not in described, f"{name}.{step.step_id}"
+            assert "operator id" not in described, f"{name}.{step.step_id}"

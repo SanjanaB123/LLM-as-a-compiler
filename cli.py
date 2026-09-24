@@ -22,6 +22,7 @@ from pathlib import Path
 from app.server import AppServer
 from core.agent import DEFAULT_MODEL, AnthropicPlanner, DiscoveryAgent
 from core.driver import WebDriver, shutdown_playwright
+from core.evals import DEFAULT_RUNS, load_suite, run_suite, suite_path
 from core.handoff import CliOperator
 from core.safety import ActionNotAllowed, Allowlist
 from core.logging import EvidenceLog, new_run_id
@@ -398,6 +399,82 @@ def cmd_replay(args: argparse.Namespace, extra: list[str]) -> int:
     return 0 if report.ok else 1
 
 
+def cmd_eval(args: argparse.Namespace) -> int:
+    """Run a capability's scenario suite N times and score it.
+
+    No model and no key: this replays the same engine production uses, which
+    is the only reason the numbers mean anything.
+    """
+    path = ARTIFACT_DIR / f"{args.capability}.json"
+    if not path.exists():
+        print(f"No artifact at {path}", file=sys.stderr)
+        return 2
+    artifact = load_artifact(path)
+
+    spec = suite_path(args.capability)
+    if not spec.exists():
+        print(f"No eval suite at {spec}", file=sys.stderr)
+        return 2
+    suite = load_suite(spec)
+
+    log = EvidenceLog(run_id=new_run_id(), kind="eval")
+    for parameter in artifact.parameters:
+        if parameter.sensitive:
+            for scenario in suite.scenarios:
+                if value := scenario.params.get(parameter.name):
+                    log.mark_sensitive(value)
+
+    entry_url = artifact.target.entry_url
+    port = int(entry_url.rsplit(":", 1)[1].split("/")[0])
+
+    print(f"{artifact.capability_id}  [{artifact.status.value}]  "
+          f"{len(suite.scenarios)} scenarios x {args.runs} runs\n")
+    header = f"{'scenario':34} {'expected':18} {'result':12} {'median':>8}"
+    print(header)
+    print("-" * len(header))
+
+    def show(result) -> None:
+        mark = "PASS" if result.passed else "FAIL"
+        print(f"{result.scenario.name:34} {result.scenario.expect.value:18} "
+              f"{mark} {result.consistency:>5} {result.median_ms:>7.0f}ms")
+        for problem in result.failures:
+            print(f"    - {problem}")
+
+    with AppServer(port=port):
+        driver = WebDriver(
+            allowlist=Allowlist.from_target(artifact.target), headed=args.headed
+        ).start()
+        try:
+            report = run_suite(
+                driver=driver,
+                artifact=artifact,
+                suite=suite,
+                log=log,
+                entry_url=entry_url,
+                runs=args.runs,
+                on_scenario=show,
+            )
+        finally:
+            driver.stop()
+            shutdown_playwright()
+
+    print("\nOutcome reachability — every branch the artifact declares:")
+    for name in report.declared_outcomes:
+        hits = sum(r.outcomes[name] for r in report.results)
+        print(f"  {'reached ' if hits else 'NEVER   '} {name} ({hits})")
+    if report.unreached_outcomes:
+        print(
+            "\n  An outcome nothing can trigger is not a safety net. Check its "
+            "detect condition against what the app actually renders."
+        )
+
+    consistent = sum(r.passed for r in report.results)
+    print(f"\n{consistent}/{len(report.results)} scenarios consistent at {args.runs} runs; "
+          f"{len(report.outcomes_reached)}/{len(report.declared_outcomes)} outcomes reached")
+    print(f"Evidence: {log.transcript_path}")
+    return 0 if report.passed else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="cli.py", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -455,6 +532,14 @@ def main(argv: list[str] | None = None) -> int:
         "the drift demo points at ?drift=1",
     )
     r.set_defaults(func=cmd_replay)
+
+    e = sub.add_parser(
+        "eval", help="run a capability's scenario suite N times and score it"
+    )
+    e.add_argument("capability")
+    e.add_argument("--runs", type=int, default=DEFAULT_RUNS)
+    e.add_argument("--headed", action="store_true")
+    e.set_defaults(func=cmd_eval)
 
     args, extra = parser.parse_known_args(argv)
     if args.command == "replay":
